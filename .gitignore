@@ -1,0 +1,40 @@
+# 数据库（含股票数据）
+*.db
+*.db-journal
+stocks.db
+
+# 结果文件
+result*.json
+
+# PID 和日志
+*.pid
+*.log
+
+# 配置文件（可能含敏感信息）
+config.json
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+
+# 临时文件
+*.tmp
+*.bak
+
+# 模型缓存（大文件）
+model_cache_v5/
+*.pkl
+*.pickle
+
+# Graphify AST 缓存
+graphify-out/cache/
+graphify-out/graph.json
+graphify-out/graph.html
+
+# CatBoost 训练缓存
+catboost_info/
+
+# 备份文件
+*.before_opt
+*_backup*.py
