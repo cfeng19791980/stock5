@@ -201,6 +201,7 @@ class Stock5LauncherGUI:
         ModernButton(acc_container, "💾 数据", self.view_database, "#6366f1", "#818cf8").pack(side=tk.LEFT, padx=4)
         ModernButton(acc_container, "🧪 测试", self.test_api, "#6366f1", "#818cf8").pack(side=tk.LEFT, padx=4)
         ModernButton(acc_container, "📊 因子", self.view_factors, "#f59e0b", "#fbbf24").pack(side=tk.LEFT, padx=4)
+        ModernButton(acc_container, "✅ 校验", self.run_data_check, "#10b981", "#34d399").pack(side=tk.LEFT, padx=4)
         
         # 操作日志（增加高度）
         log_frame = tk.Frame(main_frame, bg=self.colors['bg_card'])
@@ -641,6 +642,38 @@ class Stock5LauncherGUI:
         except Exception as e:
             self.factor_info_label.config(text=f"查询失败: {e}", fg=self.colors['danger'])
             self.log(f"❌ 因子数据查询失败: {e}")
+    
+    def run_data_check(self):
+        """运行数据完整性校验"""
+        self.log("🧪 正在执行数据校验...")
+        def check_thread():
+            try:
+                import subprocess, json
+                result = subprocess.run(
+                    [sys.executable, str(PROJECT_DIR / "check_data_integrity.py")],
+                    capture_output=True, text=True, timeout=60
+                )
+                report = json.loads(result.stdout)
+                s = report['summary']
+                self.log(f"✅ 校验完成: {s['passed']}通过/{s['warnings']}警告/{s['errors']}错误")
+                
+                # 弹窗展示详细结果
+                detail = "\n".join(
+                    f"  {'✅' if c['status']=='PASS' else '⚠️' if c['status']=='WARN' else '❌'} {c['name']:20s} → {c['detail']}"
+                    for c in report['checks']
+                )
+                from tkinter import messagebox
+                if s['errors'] == 0:
+                    messagebox.showinfo("✅ 数据校验通过",
+                        f"全部 {s['total']} 项检查通过 ✓\n{s['passed']}通过 / {s['warnings']}警告 / {s['errors']}错误\n\n{detail}")
+                else:
+                    messagebox.showwarning("⚠️ 数据校验有异常",
+                        f"{s['errors']} 项未通过!\n{s['passed']}通过 / {s['warnings']}警告 / {s['errors']}错误\n\n{detail}")
+            except Exception as e:
+                self.log(f"❌ 校验执行失败: {e}")
+                from tkinter import messagebox
+                messagebox.showerror("❌ 校验失败", f"执行出错: {e}")
+        threading.Thread(target=check_thread, daemon=True).start()
     
     def test_api(self):
         try:

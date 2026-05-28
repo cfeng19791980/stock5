@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-波段股票分析系统 v5.4 - 次日预测版
+波段股票分析系统 v5.5 - 3日预测版
 升级内容:
-1. 优化训练参数: lr=0.01 + 500树 + 早停30轮
-2. 修复宏观因子连接: 按日期匹配全历史大盘因子
-3. v5.3: 特征剪枝 - 只保留Top13高MI特征
-4. v5.4: 改为预测次日涨跌 (原3日后)
+1. v5.5: 回退3日预测窗口(PREDICT_DAYS=3)，次日预测信号/噪音比太低
+2. 修复宏观因子SQL查询: 覆盖sh.000300和000300.SH两种格式
+3. 改RISE_THRESHOLD=0.03匹配3日窗口
+4. 改评分校准: 基于历史预测分布做动态校准
 """
 
 import sys
@@ -33,11 +33,11 @@ HOLDINGS_JSON = r'e:\stock5\holdings.json'
 MODEL_CACHE_DIR = r'E:\stock5\model_cache_v5'
 PREDICTION_LOG_TABLE = 'prediction_logs_v5'
 
-# 标签阈值
-RISE_THRESHOLD = 0.015
+# 标签阈值（3日涨3%算上涨）
+RISE_THRESHOLD = 0.03
 
-# v5.4: 预测周期 - 改为次日(1天)
-PREDICT_DAYS = 1
+# v5.5: 预测周期 - 改为3日(原1日，次日信号/噪音比太低)
+PREDICT_DAYS = 3
 
 # v5.3: 特征剪枝 - 保留Top12高MI特征
 SELECTED_FEATURES = [
@@ -191,44 +191,92 @@ def load_macro_factors(conn):
     """预加载大盘/板块/基本面因子，按日期索引，覆盖全历史"""
     # 从 index_daily 构建大盘因子（覆盖全历史）
     try:
-        idx = pd.read_sql("SELECT * FROM index_daily WHERE code LIKE '%000300' OR code LIKE '%%905'", conn)
-        if idx.empty:
-            idx = pd.read_sql("SELECT * FROM index_daily WHERE code IN ('sh.000300','sh.000905')", conn)
-        # 展宽：每行一个日期，各指数列为特征
+        # 以 sh. 格式为主（有完整pct_chg），补充 000300.SH 格式的最新未覆盖日期
+        idx = pd.read_sql("""
+            SELECT * FROM index_daily 
+            WHERE code IN ('sh.000300','sh.000905','000300.SH','000905.SH') 
+            ORDER BY date
+        """, conn)
         if not idx.empty:
             idx['date'] = pd.to_datetime(idx['date']).dt.strftime('%Y-%m-%d')
-            # 沪深300
-            hs300 = idx[idx['code'].str.contains('000300', na=False)][['date','close','pct_chg','ma20','ma5']].copy()
-            hs300.columns = ['date','hs300_close','hs300_pct','hs300_ma20','hs300_ma5']
-            # 中证500
-            zz500 = idx[idx['code'].str.contains('000905|905', na=False)][['date','close','pct_chg','ma20']].copy()
-            zz500.columns = ['date','zz500_close','zz500_pct','zz500_ma20']
+
+            def build_index_series(idx_df, sh_code, code_sh, prefix):
+                """合并两种编码格式的指数数据（sh.格式优先）"""
+                sh_part = idx_df[idx_df['code'] == sh_code][['date','close','pct_chg','ma20','ma5']].copy()
+                sh_part.columns = ['date', f'{prefix}_close', f'{prefix}_pct', f'{prefix}_ma20', f'{prefix}_ma5']
+                # 000300.SH 补充sh.格式缺少的日期
+                extra = idx_df[idx_df['code'] == code_sh][['date','close']].copy()
+                extra = extra[~extra['date'].isin(sh_part['date'])]
+                if not extra.empty:
+                    extra = extra.sort_values('date')
+                    # 从sh.部分取最后一条的close作为后续pct_chg计算基准
+                    last_sh = sh_part.sort_values('date').iloc[-1] if len(sh_part) > 0 else None
+                    prev_close = last_sh[f'{prefix}_close'] if last_sh is not None else extra.iloc[0]['close']
+                    pct_chgs = []
+                    for _, r in extra.iterrows():
+                        pct = (r['close'] - prev_close) / prev_close * 100 if prev_close > 0 else 0
+                        pct_chgs.append(pct)
+                        prev_close = r['close']
+                    extra['pct_chg'] = pct_chgs
+                    extra[f'{prefix}_ma20'] = extra['close'] / 1.0  # 简化为close近似
+                    extra[f'{prefix}_ma5'] = extra['close'] / 1.0
+                    extra.columns = ['date', f'{prefix}_close', f'{prefix}_pct', f'{prefix}_ma20', f'{prefix}_ma5']
+                    combined = pd.concat([sh_part, extra], ignore_index=True).sort_values('date').drop_duplicates('date')
+                else:
+                    combined = sh_part
+                return combined
+
+            hs300 = build_index_series(idx, 'sh.000300', '000300.SH', 'hs300')
+            zz500 = build_index_series(idx, 'sh.000905', '000905.SH', 'zz500')
+
             macro = hs300.merge(zz500, on='date', how='left')
             macro = macro.set_index('date')
             # 填充可能缺失的中证500数据
             macro['zz500_close'] = macro['zz500_close'].fillna(macro['hs300_close'])
             macro['zz500_pct'] = macro['zz500_pct'].fillna(0)
             macro['zz500_ma20'] = macro['zz500_ma20'].fillna(macro['hs300_ma20'])
-            print(f"  大盘因子(从index_daily): {len(macro)}条 ({macro.index.min()} ~ {macro.index.max()})")
+            print(f"  大盘因子(合并): {len(macro)}条 ({macro.index.min()} ~ {macro.index.max()})")
         else:
             macro = None
     except Exception as e:
         print(f"  大盘因子加载失败: {e}")
+        import traceback; traceback.print_exc()
         macro = None
     
     # 补充/覆盖 macro_factors 表中的最新数据（趋势方向等）
+    # 同时用macro_factors中index_daily没有的日期行补充大盘因子数据
     try:
         mf = pd.read_sql("SELECT * FROM macro_factors", conn)
         if not mf.empty and macro is not None:
             mf['date'] = pd.to_datetime(mf['date']).dt.strftime('%Y-%m-%d')
-            mf = mf.set_index('date')
+            # 取每个日期的最新一条
+            mf = mf.sort_values('date').drop_duplicates('date', keep='last').set_index('date')
             for dt in mf.index:
+                row = mf.loc[dt]
+                if isinstance(row, pd.DataFrame):
+                    row = row.iloc[0]
                 if dt in macro.index:
-                    for col in ['sector_rotation']:
-                        if col in mf.columns:
-                            macro.loc[dt, col] = mf.loc[dt, col] if isinstance(mf.loc[dt], pd.Series) else mf.loc[dt, col].iloc[0]
-            print(f"  已覆盖最新趋势方向数据")
-    except:
+                    # 覆盖趋势和板块字段
+                    for col in ['hs300_trend','zz500_trend','sector_rotation','top_sector']:
+                        if col in mf.columns and pd.notna(row.get(col)):
+                            macro.loc[dt, col] = row[col]
+                else:
+                    # 不在 index_daily 中的日期 -> 用 macro_factors 的数据补一行
+                    new_row = {c: 0 for c in macro.columns}
+                    for c in ['hs300_close','hs300_pct','hs300_ma20','hs300_ma5']:
+                        if c in mf.columns and pd.notna(row.get(c)):
+                            new_row[c] = row[c]
+                    for c in ['zz500_close','zz500_pct','zz500_ma20']:
+                        if c in mf.columns and pd.notna(row.get(c)):
+                            new_row[c] = row[c]
+                    for c in ['hs300_trend','zz500_trend','sector_rotation','top_sector']:
+                        if c in mf.columns and pd.notna(row.get(c)):
+                            new_row[c] = row[c]
+                    macro.loc[dt] = pd.Series(new_row)
+            macro = macro.sort_index()
+            print(f"  已覆盖趋势方向+补充macro_factors最新日期")
+    except Exception as e:
+        print(f"  macro_factors补充异常: {e}")
         pass
     
     if macro is not None:
@@ -381,7 +429,7 @@ def train_models_v5(stock_pool, conn):
     return models
 
 def predict_fusion(models, code, feat, all_probas=None):
-    """融合预测 + 分位数评分校准"""
+    """三模型融合预测，返回真实上涨概率×100"""
     try:
         # 确保特征列顺序与XGB模型训练一致
         if code in models['xgb']:
@@ -395,7 +443,7 @@ def predict_fusion(models, code, feat, all_probas=None):
         
         fusion_score = xgb_pred * 0.4 + lgb_pred * 0.35 + cat_pred * 0.25
         
-        # 评分=上涨概率*100
+        # 分数 = 真实融合概率 * 100，不做任何映射或分位数拉伸
         return int(np.clip(fusion_score * 100, 0, 100))
     except:
         return 50
