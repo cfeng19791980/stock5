@@ -3,12 +3,22 @@
 数据校验脚本 — 验证 stock5 数据库的完整性、时效性、一致性
 输出：JSON 格式检查报告（既用于命令行也用于 GUI 展示）
 """
-import json, sqlite3, sys
+import json, sqlite3, sys, os
 from datetime import datetime, timedelta
+from pathlib import Path
 
-DB_PATH = r'E:\stock5\stocks.db'
-CSV_PATH = r'e:\stock5\波段股票Top30.csv'
-RESULT_PATH = r'e:\stock5\result_v5.json'
+# Paths can be configured via environment variables to avoid hardcoded E:\ paths
+DB_PATH = Path(os.environ.get('STOCK5_DB_PATH', r'E:\stock5\stocks.db'))
+CSV_PATH = Path(os.environ.get('STOCK5_CSV_PATH', r'E:\stock5\波段股票Top30.csv'))
+RESULT_PATH = Path(os.environ.get('STOCK5_RESULT_PATH', r'E:\stock5\result_v5.json'))
+
+
+def _safe_one(cursor, query, params=()):
+    try:
+        row = cursor.execute(query, params).fetchone()
+        return row[0] if row and len(row) > 0 else None
+    except Exception:
+        return None
 
 def check():
     report = {
@@ -22,7 +32,16 @@ def check():
         elif status == 'WARN': report['warnings'] += 1
         else: report['errors'] += 1
     
-    conn = sqlite3.connect(DB_PATH)
+    # 前置检查：确认文件存在
+    try:
+        if not DB_PATH.exists():
+            _check('数据库文件', 'ERROR', f'未找到数据库文件: {DB_PATH}')
+            return report
+    except Exception:
+        _check('数据库文件', 'ERROR', f'路径不可访问: {DB_PATH}')
+        return report
+
+    conn = sqlite3.connect(str(DB_PATH))
     today = datetime.now().strftime('%Y-%m-%d')
     today_ts = datetime.now()
     
@@ -40,8 +59,9 @@ def check():
     idx_formats = ['sh.000300', 'sh.000905', '000300.SH', '000905.SH']
     idx_latest = {}
     for c in idx_formats:
-        r = conn.execute(f"SELECT MAX(date) FROM index_daily WHERE code='{c}'").fetchone()[0]
-        if r: idx_latest[c] = r
+        r = _safe_one(conn, "SELECT MAX(date) FROM index_daily WHERE code=?", (c,))
+        if r:
+            idx_latest[c] = r
     max_idx_date = max(idx_latest.values()) if idx_latest else None
     
     if max_idx_date:
@@ -53,18 +73,21 @@ def check():
         _check('大盘日线数据', 'ERROR', '无数据')
     
     # sh.格式是否有pct_chg
-    sh300_latest = conn.execute("SELECT MAX(date) FROM index_daily WHERE code='sh.000300' AND pct_chg IS NOT NULL").fetchone()[0]
-    _check('sh.000300 pct_chg覆盖', 'PASS' if sh300_latest else 'WARN',
-           f'最新pct_chg日期: {sh300_latest or "无数据"}')
+        sh300_latest = _safe_one(conn, "SELECT MAX(date) FROM index_daily WHERE code=? AND pct_chg IS NOT NULL", ('sh.000300',))
+        _check('sh.000300 pct_chg覆盖', 'PASS' if sh300_latest else 'WARN',
+            f'最新pct_chg日期: {sh300_latest or "无数据"}')
     
     # ─── 3. macro_factors 时效性 ───
-    mf_max = conn.execute("SELECT MAX(date) FROM macro_factors").fetchone()[0]
+    mf_max = _safe_one(conn, "SELECT MAX(date) FROM macro_factors")
     if mf_max:
-        days_diff = (today_ts - datetime.strptime(mf_max, '%Y-%m-%d')).days
+        try:
+            days_diff = (today_ts - datetime.strptime(mf_max, '%Y-%m-%d')).days
+        except Exception:
+            days_diff = 9999
         status = 'PASS' if days_diff <= 2 else ('WARN' if days_diff <= 7 else 'ERROR')
-        mf_cnt = conn.execute("SELECT COUNT(*) FROM macro_factors WHERE date=?", (mf_max,)).fetchone()[0]
+        mf_cnt = _safe_one(conn, "SELECT COUNT(*) FROM macro_factors WHERE date=?", (mf_max,)) or 0
         # 检查趋势字段
-        has_trend = conn.execute(f"SELECT COUNT(*) FROM macro_factors WHERE date='{mf_max}' AND hs300_trend IS NOT NULL").fetchone()[0]
+        has_trend = _safe_one(conn, "SELECT COUNT(*) FROM macro_factors WHERE date=? AND hs300_trend IS NOT NULL", (mf_max,)) or 0
         trend_ok = has_trend > 0
         _check('宏观因子时效性', status,
                f'最新日期: {mf_max} ({days_diff}天前, {mf_cnt}条, 趋势字段{"有" if trend_ok else "无"})')
@@ -74,13 +97,24 @@ def check():
     # ─── 4. 30只股票数据完整性 ───
     import csv
     codes = []
+    if not CSV_PATH.exists():
+        _check('股票池CSV', 'ERROR', f'CSV 文件未找到: {CSV_PATH}')
+        conn.close()
+        return report
     with open(CSV_PATH, encoding='utf-8-sig') as f:
-        for row in csv.DictReader(f):
-            codes.append(row['股票代码'])
+        reader = csv.DictReader(f)
+        # 支持多种可能的列名
+        for row in reader:
+            code = row.get('股票代码') or row.get('代码') or row.get('code') or row.get('stock_code')
+            if not code:
+                # 忽略格式错误的行，但记录警告
+                _check('股票池CSV 行', 'WARN', f'CSV 行缺少代码字段: {row}')
+                continue
+            codes.append(code.strip())
     missing = []
     short_data = []
     for c in codes:
-        cnt = conn.execute(f"SELECT COUNT(*) FROM daily_price WHERE code='{c}'").fetchone()[0]
+        cnt = _safe_one(conn, "SELECT COUNT(*) FROM daily_price WHERE code=?", (c,)) or 0
         if cnt == 0: missing.append(c)
         elif cnt < 100: short_data.append(c)
     
@@ -90,21 +124,25 @@ def check():
     # 每只股票最新日期
     late_codes = []
     for c in codes:
-        dt = conn.execute(f"SELECT MAX(date) FROM daily_price WHERE code='{c}'").fetchone()[0]
+        dt = _safe_one(conn, "SELECT MAX(date) FROM daily_price WHERE code=?", (c,))
         if dt and dt < (today_ts - timedelta(days=7)).strftime('%Y-%m-%d'):
             late_codes.append(f'{c}({dt})')
     _check('股票数据时效性', 'PASS' if not late_codes else 'WARN',
            f'{len(late_codes)}只股票数据滞后7天以上' if late_codes else '全部在7天内')
     
     # ─── 5. 基本面因子 ───
-    fs_cnt = conn.execute("SELECT COUNT(*) FROM factor_signals").fetchone()[0]
-    fs_codes = conn.execute("SELECT COUNT(DISTINCT code) FROM factor_signals").fetchone()[0]
-    fs_dates = conn.execute("SELECT MIN(date), MAX(date) FROM factor_signals").fetchone()
+    fs_cnt = _safe_one(conn, "SELECT COUNT(*) FROM factor_signals") or 0
+    fs_codes = _safe_one(conn, "SELECT COUNT(DISTINCT code) FROM factor_signals") or 0
+    fs_dates_row = None
+    try:
+        fs_dates_row = conn.execute("SELECT MIN(date), MAX(date) FROM factor_signals").fetchone()
+    except Exception:
+        fs_dates_row = (None, None)
     _check('基本面因子', 'PASS' if fs_cnt >= len(codes) else 'WARN',
-           f'{fs_cnt}条({fs_codes}只股票), 日期{fs_dates[0]}~{fs_dates[1]}')
+           f'{fs_cnt}条({fs_codes}只股票), 日期{fs_dates_row[0]}~{fs_dates_row[1]}')
     
     # ─── 6. 各股票日线行数一致性 ───
-    counts = [conn.execute(f"SELECT COUNT(*) FROM daily_price WHERE code='{c}'").fetchone()[0] for c in codes]
+    counts = [(_safe_one(conn, "SELECT COUNT(*) FROM daily_price WHERE code=?", (c,)) or 0) for c in codes]
     if counts:
         min_c, max_c = min(counts), max(counts)
         _check('日线数据量一致性', 'PASS' if max_c - min_c < 20 else 'WARN',
