@@ -1,0 +1,1860 @@
+{
+  "config": {
+    "predict_days": 1,
+    "rise_threshold": 0.01
+  },
+  "periods_count": 6,
+  "total_samples": 24662,
+  "weighted_accuracy": 68.8,
+  "total_buy_signals": 992,
+  "avg_buy_up_rate": 77.7,
+  "periods": [
+    {
+      "period": "熊市大跌",
+      "desc": "上证3700→2800",
+      "samples": 0,
+      "accuracy": 0,
+      "buy_signals": 0,
+      "buy_up_rate": 0,
+      "buy_avg_return": 0,
+      "f1_score": 0
+    },
+    {
+      "period": "反弹修复",
+      "desc": "2800→3400",
+      "train_end": "2022-12-01",
+      "test_end": "2023-05-31",
+      "samples": 3422,
+      "accuracy": 71.1,
+      "confusion_matrix": {
+        "tp": 0,
+        "fp": 0,
+        "fn": 990,
+        "tn": 2432
+      },
+      "precision": 0,
+      "recall": 0.0,
+      "f1_score": 0.0,
+      "buy_signals": 0,
+      "buy_up_rate": 0,
+      "buy_avg_return": 0,
+      "sell_up_rate": 28.9,
+      "sell_avg_return": 0.0,
+      "score_bins": {
+        "<40(卖��)": {
+          "count": 2747,
+          "up_rate": 24.8,
+          "avg_return": -0.31
+        },
+        "40-49(观望)": {
+          "count": 570,
+          "up_rate": 42.8,
+          "avg_return": 1.01
+        },
+        "50-59(观望+)": {
+          "count": 105,
+          "up_rate": 62.9,
+          "avg_return": 2.75
+        }
+      },
+      "stock_stats": [
+        {
+          "code": "002202.SZ",
+          "samples": 118,
+          "accuracy": 82.2,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.05
+        },
+        {
+          "code": "002353.SZ",
+          "samples": 118,
+          "accuracy": 76.3,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.19
+        },
+        {
+          "code": "002384.SZ",
+          "samples": 118,
+          "accuracy": 70.3,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.01
+        },
+        {
+          "code": "002460.SZ",
+          "samples": 118,
+          "accuracy": 72.9,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.2
+        },
+        {
+          "code": "002916.SZ",
+          "samples": 118,
+          "accuracy": 76.3,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.05
+        },
+        {
+          "code": "300136.SZ",
+          "samples": 118,
+          "accuracy": 71.2,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.13
+        },
+        {
+          "code": "300476.SZ",
+          "samples": 118,
+          "accuracy": 60.2,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.68
+        },
+        {
+          "code": "300604.SZ",
+          "samples": 118,
+          "accuracy": 66.9,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.06
+        },
+        {
+          "code": "600118.SH",
+          "samples": 118,
+          "accuracy": 70.3,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.13
+        },
+        {
+          "code": "600183.SH",
+          "samples": 118,
+          "accuracy": 72.0,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.04
+        },
+        {
+          "code": "601231.SH",
+          "samples": 118,
+          "accuracy": 77.1,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.11
+        },
+        {
+          "code": "603225.SH",
+          "samples": 118,
+          "accuracy": 68.6,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.01
+        },
+        {
+          "code": "603228.SH",
+          "samples": 118,
+          "accuracy": 71.2,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.2
+        },
+        {
+          "code": "603876.SH",
+          "samples": 118,
+          "accuracy": 76.3,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.26
+        },
+        {
+          "code": "603986.SH",
+          "samples": 118,
+          "accuracy": 67.8,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.14
+        },
+        {
+          "code": "605196.SH",
+          "samples": 118,
+          "accuracy": 76.3,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.04
+        },
+        {
+          "code": "688028.SH",
+          "samples": 118,
+          "accuracy": 74.6,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.34
+        },
+        {
+          "code": "688195.SH",
+          "samples": 118,
+          "accuracy": 65.3,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.34
+        },
+        {
+          "code": "688233.SH",
+          "samples": 118,
+          "accuracy": 66.9,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.08
+        },
+        {
+          "code": "688308.SH",
+          "samples": 118,
+          "accuracy": 72.9,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.31
+        },
+        {
+          "code": "688388.SH",
+          "samples": 118,
+          "accuracy": 80.5,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.57
+        },
+        {
+          "code": "688519.SH",
+          "samples": 118,
+          "accuracy": 61.9,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.13
+        },
+        {
+          "code": "688521.SH",
+          "samples": 118,
+          "accuracy": 59.3,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.64
+        },
+        {
+          "code": "688556.SH",
+          "samples": 118,
+          "accuracy": 74.6,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.38
+        },
+        {
+          "code": "688658.SH",
+          "samples": 118,
+          "accuracy": 69.5,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.1
+        },
+        {
+          "code": "688668.SH",
+          "samples": 118,
+          "accuracy": 70.3,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.04
+        },
+        {
+          "code": "688676.SH",
+          "samples": 118,
+          "accuracy": 74.6,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.22
+        },
+        {
+          "code": "688698.SH",
+          "samples": 118,
+          "accuracy": 64.4,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.23
+        },
+        {
+          "code": "688788.SH",
+          "samples": 118,
+          "accuracy": 70.3,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.06
+        }
+      ],
+      "all_return_std": 3.0,
+      "score_summary": {
+        "min": 14,
+        "max": 57,
+        "mean": 32.6,
+        "median": 33
+      },
+      "daily_signals": {
+        "days": 0,
+        "avg_per_day": 0.0,
+        "max_per_day": 0,
+        "min_per_day": 0,
+        "signal_ratio": 0.0,
+        "total_samples": 3422
+      },
+      "threshold_scan": {
+        "30": {
+          "signal_ratio": 61.92,
+          "buy_count": 2119,
+          "accuracy": 54.6,
+          "buy_up_rate": 36.7,
+          "buy_avg_return": 0.55,
+          "daily_avg": 18.6
+        },
+        "40": {
+          "signal_ratio": 19.73,
+          "buy_count": 675,
+          "accuracy": 69.5,
+          "buy_up_rate": 45.9,
+          "buy_avg_return": 1.28,
+          "daily_avg": 5.9
+        },
+        "45": {
+          "signal_ratio": 7.1,
+          "buy_count": 243,
+          "accuracy": 71.7,
+          "buy_up_rate": 54.3,
+          "buy_avg_return": 1.96,
+          "daily_avg": 2.1
+        },
+        "50": {
+          "signal_ratio": 3.07,
+          "buy_count": 105,
+          "accuracy": 71.9,
+          "buy_up_rate": 62.9,
+          "buy_avg_return": 2.75,
+          "daily_avg": 0.9
+        },
+        "55": {
+          "signal_ratio": 0.76,
+          "buy_count": 26,
+          "accuracy": 71.3,
+          "buy_up_rate": 65.4,
+          "buy_avg_return": 2.85,
+          "daily_avg": 0.2
+        },
+        "60": {
+          "signal_ratio": 0.0,
+          "buy_count": 0,
+          "accuracy": 71.1,
+          "buy_up_rate": 0,
+          "buy_avg_return": 0,
+          "daily_avg": 0.0
+        },
+        "65": {
+          "signal_ratio": 0.0,
+          "buy_count": 0,
+          "accuracy": 71.1,
+          "buy_up_rate": 0,
+          "buy_avg_return": 0,
+          "daily_avg": 0.0
+        },
+        "70": {
+          "signal_ratio": 0.0,
+          "buy_count": 0,
+          "accuracy": 71.1,
+          "buy_up_rate": 0,
+          "buy_avg_return": 0,
+          "daily_avg": 0.0
+        }
+      }
+    },
+    {
+      "period": "震荡下跌",
+      "desc": "3400→2600",
+      "train_end": "2023-06-01",
+      "test_end": "2024-01-31",
+      "samples": 4920,
+      "accuracy": 73.8,
+      "confusion_matrix": {
+        "tp": 22,
+        "fp": 9,
+        "fn": 1281,
+        "tn": 3608
+      },
+      "precision": 71.0,
+      "recall": 1.7,
+      "f1_score": 3.3,
+      "buy_signals": 31,
+      "buy_up_rate": 71.0,
+      "buy_avg_return": 3.26,
+      "sell_up_rate": 26.2,
+      "sell_avg_return": -0.24,
+      "score_bins": {
+        "<40(卖��)": {
+          "count": 4007,
+          "up_rate": 20.1,
+          "avg_return": -0.69
+        },
+        "40-49(观望)": {
+          "count": 558,
+          "up_rate": 50.7,
+          "avg_return": 1.56
+        },
+        "50-59(观望+)": {
+          "count": 324,
+          "up_rate": 59.9,
+          "avg_return": 2.12
+        },
+        "60-69(买入)": {
+          "count": 31,
+          "up_rate": 71.0,
+          "avg_return": 3.26
+        }
+      },
+      "stock_stats": [
+        {
+          "code": "002202.SZ",
+          "samples": 164,
+          "accuracy": 86.6,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.27
+        },
+        {
+          "code": "002353.SZ",
+          "samples": 164,
+          "accuracy": 69.5,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.07
+        },
+        {
+          "code": "002384.SZ",
+          "samples": 164,
+          "accuracy": 76.2,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.41
+        },
+        {
+          "code": "002460.SZ",
+          "samples": 164,
+          "accuracy": 78.7,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.36
+        },
+        {
+          "code": "002916.SZ",
+          "samples": 164,
+          "accuracy": 78.7,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.21
+        },
+        {
+          "code": "300136.SZ",
+          "samples": 164,
+          "accuracy": 69.5,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.05
+        },
+        {
+          "code": "300476.SZ",
+          "samples": 164,
+          "accuracy": 68.3,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.3
+        },
+        {
+          "code": "300604.SZ",
+          "samples": 164,
+          "accuracy": 75.0,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.4
+        },
+        {
+          "code": "600118.SH",
+          "samples": 164,
+          "accuracy": 78.0,
+          "buy_signals": 1,
+          "buy_up_rate": 0.0,
+          "avg_return": -0.08
+        },
+        {
+          "code": "600183.SH",
+          "samples": 164,
+          "accuracy": 70.7,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.01
+        },
+        {
+          "code": "601231.SH",
+          "samples": 164,
+          "accuracy": 73.2,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.04
+        },
+        {
+          "code": "603225.SH",
+          "samples": 164,
+          "accuracy": 74.4,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.06
+        },
+        {
+          "code": "603228.SH",
+          "samples": 164,
+          "accuracy": 76.8,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.26
+        },
+        {
+          "code": "603876.SH",
+          "samples": 164,
+          "accuracy": 79.3,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.68
+        },
+        {
+          "code": "603986.SH",
+          "samples": 164,
+          "accuracy": 74.4,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.31
+        },
+        {
+          "code": "605196.SH",
+          "samples": 164,
+          "accuracy": 75.6,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.03
+        },
+        {
+          "code": "688028.SH",
+          "samples": 164,
+          "accuracy": 71.3,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.13
+        },
+        {
+          "code": "688195.SH",
+          "samples": 164,
+          "accuracy": 64.6,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.13
+        },
+        {
+          "code": "688233.SH",
+          "samples": 164,
+          "accuracy": 74.4,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.3
+        },
+        {
+          "code": "688308.SH",
+          "samples": 164,
+          "accuracy": 73.2,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.52
+        },
+        {
+          "code": "688388.SH",
+          "samples": 164,
+          "accuracy": 78.7,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.28
+        },
+        {
+          "code": "688416.SH",
+          "samples": 164,
+          "accuracy": 67.1,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.44
+        },
+        {
+          "code": "688519.SH",
+          "samples": 164,
+          "accuracy": 76.8,
+          "buy_signals": 6,
+          "buy_up_rate": 100.0,
+          "avg_return": -0.2
+        },
+        {
+          "code": "688521.SH",
+          "samples": 164,
+          "accuracy": 73.2,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.54
+        },
+        {
+          "code": "688556.SH",
+          "samples": 164,
+          "accuracy": 72.6,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.3
+        },
+        {
+          "code": "688658.SH",
+          "samples": 164,
+          "accuracy": 70.7,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.27
+        },
+        {
+          "code": "688668.SH",
+          "samples": 164,
+          "accuracy": 68.9,
+          "buy_signals": 6,
+          "buy_up_rate": 66.7,
+          "avg_return": -0.19
+        },
+        {
+          "code": "688676.SH",
+          "samples": 164,
+          "accuracy": 70.1,
+          "buy_signals": 1,
+          "buy_up_rate": 100.0,
+          "avg_return": 0.12
+        },
+        {
+          "code": "688698.SH",
+          "samples": 164,
+          "accuracy": 72.6,
+          "buy_signals": 17,
+          "buy_up_rate": 64.7,
+          "avg_return": -0.01
+        },
+        {
+          "code": "688788.SH",
+          "samples": 164,
+          "accuracy": 74.4,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.22
+        }
+      ],
+      "all_return_std": 2.85,
+      "score_summary": {
+        "min": 8,
+        "max": 66,
+        "mean": 28.6,
+        "median": 26
+      },
+      "daily_signals": {
+        "days": 31,
+        "avg_per_day": 1.3,
+        "max_per_day": 3,
+        "min_per_day": 1,
+        "signal_ratio": 0.63,
+        "total_samples": 4920
+      },
+      "threshold_scan": {
+        "30": {
+          "signal_ratio": 40.02,
+          "buy_count": 1969,
+          "accuracy": 69.3,
+          "buy_up_rate": 44.8,
+          "buy_avg_return": 1.03,
+          "daily_avg": 12.0
+        },
+        "40": {
+          "signal_ratio": 18.56,
+          "buy_count": 913,
+          "accuracy": 75.2,
+          "buy_up_rate": 54.7,
+          "buy_avg_return": 1.81,
+          "daily_avg": 5.6
+        },
+        "45": {
+          "signal_ratio": 12.24,
+          "buy_count": 602,
+          "accuracy": 75.1,
+          "buy_up_rate": 56.5,
+          "buy_avg_return": 1.97,
+          "daily_avg": 3.7
+        },
+        "50": {
+          "signal_ratio": 7.22,
+          "buy_count": 355,
+          "accuracy": 75.1,
+          "buy_up_rate": 60.8,
+          "buy_avg_return": 2.22,
+          "daily_avg": 2.2
+        },
+        "55": {
+          "signal_ratio": 2.44,
+          "buy_count": 120,
+          "accuracy": 74.3,
+          "buy_up_rate": 66.7,
+          "buy_avg_return": 2.87,
+          "daily_avg": 0.7
+        },
+        "60": {
+          "signal_ratio": 0.63,
+          "buy_count": 31,
+          "accuracy": 73.8,
+          "buy_up_rate": 71.0,
+          "buy_avg_return": 3.26,
+          "daily_avg": 0.2
+        },
+        "65": {
+          "signal_ratio": 0.06,
+          "buy_count": 3,
+          "accuracy": 73.5,
+          "buy_up_rate": 66.7,
+          "buy_avg_return": 1.52,
+          "daily_avg": 0.0
+        },
+        "70": {
+          "signal_ratio": 0.0,
+          "buy_count": 0,
+          "accuracy": 73.5,
+          "buy_up_rate": 0,
+          "buy_avg_return": 0,
+          "daily_avg": 0.0
+        }
+      }
+    },
+    {
+      "period": "急跌修复",
+      "desc": "2600→3100",
+      "train_end": "2024-02-01",
+      "test_end": "2024-05-31",
+      "samples": 2220,
+      "accuracy": 64.5,
+      "confusion_matrix": {
+        "tp": 69,
+        "fp": 18,
+        "fn": 769,
+        "tn": 1364
+      },
+      "precision": 79.3,
+      "recall": 8.2,
+      "f1_score": 14.9,
+      "buy_signals": 87,
+      "buy_up_rate": 79.3,
+      "buy_avg_return": 4.96,
+      "sell_up_rate": 36.1,
+      "sell_avg_return": 0.2,
+      "score_bins": {
+        "<40(卖��)": {
+          "count": 1441,
+          "up_rate": 23.9,
+          "avg_return": -0.82
+        },
+        "40-49(观望)": {
+          "count": 404,
+          "up_rate": 56.9,
+          "avg_return": 1.72
+        },
+        "50-59(观望+)": {
+          "count": 288,
+          "up_rate": 67.4,
+          "avg_return": 3.17
+        },
+        "60-69(买入)": {
+          "count": 81,
+          "up_rate": 77.8,
+          "avg_return": 4.83
+        },
+        ">=70(强买入)": {
+          "count": 6,
+          "up_rate": 100.0,
+          "avg_return": 6.74
+        }
+      },
+      "stock_stats": [
+        {
+          "code": "002202.SZ",
+          "samples": 74,
+          "accuracy": 71.6,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.22
+        },
+        {
+          "code": "002353.SZ",
+          "samples": 74,
+          "accuracy": 63.5,
+          "buy_signals": 1,
+          "buy_up_rate": 100.0,
+          "avg_return": 0.49
+        },
+        {
+          "code": "002384.SZ",
+          "samples": 74,
+          "accuracy": 64.9,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.39
+        },
+        {
+          "code": "002460.SZ",
+          "samples": 74,
+          "accuracy": 73.0,
+          "buy_signals": 2,
+          "buy_up_rate": 50.0,
+          "avg_return": 0.06
+        },
+        {
+          "code": "002916.SZ",
+          "samples": 74,
+          "accuracy": 64.9,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.85
+        },
+        {
+          "code": "300136.SZ",
+          "samples": 74,
+          "accuracy": 66.2,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.27
+        },
+        {
+          "code": "300476.SZ",
+          "samples": 74,
+          "accuracy": 74.3,
+          "buy_signals": 10,
+          "buy_up_rate": 100.0,
+          "avg_return": 0.92
+        },
+        {
+          "code": "300604.SZ",
+          "samples": 74,
+          "accuracy": 64.9,
+          "buy_signals": 3,
+          "buy_up_rate": 100.0,
+          "avg_return": 0.39
+        },
+        {
+          "code": "600118.SH",
+          "samples": 74,
+          "accuracy": 71.6,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.19
+        },
+        {
+          "code": "600183.SH",
+          "samples": 74,
+          "accuracy": 67.6,
+          "buy_signals": 5,
+          "buy_up_rate": 100.0,
+          "avg_return": 0.51
+        },
+        {
+          "code": "601231.SH",
+          "samples": 74,
+          "accuracy": 68.9,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.39
+        },
+        {
+          "code": "603225.SH",
+          "samples": 74,
+          "accuracy": 70.3,
+          "buy_signals": 3,
+          "buy_up_rate": 66.7,
+          "avg_return": 0.33
+        },
+        {
+          "code": "603228.SH",
+          "samples": 74,
+          "accuracy": 68.9,
+          "buy_signals": 10,
+          "buy_up_rate": 90.0,
+          "avg_return": 0.63
+        },
+        {
+          "code": "603876.SH",
+          "samples": 74,
+          "accuracy": 54.1,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.31
+        },
+        {
+          "code": "603986.SH",
+          "samples": 74,
+          "accuracy": 66.2,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.5
+        },
+        {
+          "code": "605196.SH",
+          "samples": 74,
+          "accuracy": 52.7,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.77
+        },
+        {
+          "code": "688028.SH",
+          "samples": 74,
+          "accuracy": 54.1,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.3
+        },
+        {
+          "code": "688195.SH",
+          "samples": 74,
+          "accuracy": 59.5,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.44
+        },
+        {
+          "code": "688233.SH",
+          "samples": 74,
+          "accuracy": 59.5,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.28
+        },
+        {
+          "code": "688308.SH",
+          "samples": 74,
+          "accuracy": 63.5,
+          "buy_signals": 2,
+          "buy_up_rate": 100.0,
+          "avg_return": 0.51
+        },
+        {
+          "code": "688388.SH",
+          "samples": 74,
+          "accuracy": 67.6,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.24
+        },
+        {
+          "code": "688416.SH",
+          "samples": 74,
+          "accuracy": 59.5,
+          "buy_signals": 15,
+          "buy_up_rate": 66.7,
+          "avg_return": 0.47
+        },
+        {
+          "code": "688519.SH",
+          "samples": 74,
+          "accuracy": 73.0,
+          "buy_signals": 23,
+          "buy_up_rate": 69.6,
+          "avg_return": 0.85
+        },
+        {
+          "code": "688521.SH",
+          "samples": 74,
+          "accuracy": 67.6,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.06
+        },
+        {
+          "code": "688556.SH",
+          "samples": 74,
+          "accuracy": 70.3,
+          "buy_signals": 2,
+          "buy_up_rate": 100.0,
+          "avg_return": -0.44
+        },
+        {
+          "code": "688658.SH",
+          "samples": 74,
+          "accuracy": 58.1,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.33
+        },
+        {
+          "code": "688668.SH",
+          "samples": 74,
+          "accuracy": 58.1,
+          "buy_signals": 4,
+          "buy_up_rate": 75.0,
+          "avg_return": 0.64
+        },
+        {
+          "code": "688676.SH",
+          "samples": 74,
+          "accuracy": 54.1,
+          "buy_signals": 2,
+          "buy_up_rate": 100.0,
+          "avg_return": 0.69
+        },
+        {
+          "code": "688698.SH",
+          "samples": 74,
+          "accuracy": 67.6,
+          "buy_signals": 5,
+          "buy_up_rate": 60.0,
+          "avg_return": 0.25
+        },
+        {
+          "code": "688788.SH",
+          "samples": 74,
+          "accuracy": 60.8,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.19
+        }
+      ],
+      "all_return_std": 3.98,
+      "score_summary": {
+        "min": 9,
+        "max": 72,
+        "mean": 33.2,
+        "median": 31
+      },
+      "daily_signals": {
+        "days": 87,
+        "avg_per_day": 2.2,
+        "max_per_day": 7,
+        "min_per_day": 1,
+        "signal_ratio": 3.92,
+        "total_samples": 2220
+      },
+      "threshold_scan": {
+        "30": {
+          "signal_ratio": 53.06,
+          "buy_count": 1178,
+          "accuracy": 68.1,
+          "buy_up_rate": 55.5,
+          "buy_avg_return": 1.9,
+          "daily_avg": 15.9
+        },
+        "40": {
+          "signal_ratio": 35.09,
+          "buy_count": 779,
+          "accuracy": 71.6,
+          "buy_up_rate": 63.3,
+          "buy_avg_return": 2.62,
+          "daily_avg": 10.5
+        },
+        "45": {
+          "signal_ratio": 26.53,
+          "buy_count": 589,
+          "accuracy": 70.9,
+          "buy_up_rate": 66.2,
+          "buy_avg_return": 3.0,
+          "daily_avg": 8.0
+        },
+        "50": {
+          "signal_ratio": 16.89,
+          "buy_count": 375,
+          "accuracy": 69.1,
+          "buy_up_rate": 70.1,
+          "buy_avg_return": 3.58,
+          "daily_avg": 5.1
+        },
+        "55": {
+          "signal_ratio": 10.18,
+          "buy_count": 226,
+          "accuracy": 66.0,
+          "buy_up_rate": 68.6,
+          "buy_avg_return": 3.96,
+          "daily_avg": 3.1
+        },
+        "60": {
+          "signal_ratio": 3.92,
+          "buy_count": 87,
+          "accuracy": 64.5,
+          "buy_up_rate": 79.3,
+          "buy_avg_return": 4.96,
+          "daily_avg": 1.2
+        },
+        "65": {
+          "signal_ratio": 1.17,
+          "buy_count": 26,
+          "accuracy": 62.9,
+          "buy_up_rate": 76.9,
+          "buy_avg_return": 5.19,
+          "daily_avg": 0.4
+        },
+        "70": {
+          "signal_ratio": 0.27,
+          "buy_count": 6,
+          "accuracy": 62.5,
+          "buy_up_rate": 100.0,
+          "buy_avg_return": 6.74,
+          "daily_avg": 0.1
+        }
+      }
+    },
+    {
+      "period": "宽幅震荡",
+      "desc": "3100-2600-3400",
+      "train_end": "2024-06-01",
+      "test_end": "2025-02-28",
+      "samples": 5370,
+      "accuracy": 68.6,
+      "confusion_matrix": {
+        "tp": 149,
+        "fp": 46,
+        "fn": 1641,
+        "tn": 3534
+      },
+      "precision": 76.4,
+      "recall": 8.3,
+      "f1_score": 15.0,
+      "buy_signals": 195,
+      "buy_up_rate": 76.4,
+      "buy_avg_return": 5.07,
+      "sell_up_rate": 31.7,
+      "sell_avg_return": 0.01,
+      "score_bins": {
+        "<40(卖��)": {
+          "count": 3605,
+          "up_rate": 21.0,
+          "avg_return": -0.86
+        },
+        "40-49(观望)": {
+          "count": 882,
+          "up_rate": 50.7,
+          "avg_return": 1.35
+        },
+        "50-59(观望+)": {
+          "count": 688,
+          "up_rate": 63.4,
+          "avg_return": 2.85
+        },
+        "60-69(买入)": {
+          "count": 191,
+          "up_rate": 76.4,
+          "avg_return": 5.07
+        },
+        ">=70(强买入)": {
+          "count": 4,
+          "up_rate": 75.0,
+          "avg_return": 5.12
+        }
+      },
+      "stock_stats": [
+        {
+          "code": "002202.SZ",
+          "samples": 179,
+          "accuracy": 72.6,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.12
+        },
+        {
+          "code": "002353.SZ",
+          "samples": 179,
+          "accuracy": 71.5,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.05
+        },
+        {
+          "code": "002384.SZ",
+          "samples": 179,
+          "accuracy": 58.7,
+          "buy_signals": 1,
+          "buy_up_rate": 100.0,
+          "avg_return": 0.47
+        },
+        {
+          "code": "002460.SZ",
+          "samples": 179,
+          "accuracy": 67.6,
+          "buy_signals": 2,
+          "buy_up_rate": 50.0,
+          "avg_return": 0.1
+        },
+        {
+          "code": "002916.SZ",
+          "samples": 179,
+          "accuracy": 65.4,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.24
+        },
+        {
+          "code": "300136.SZ",
+          "samples": 179,
+          "accuracy": 66.5,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.25
+        },
+        {
+          "code": "300476.SZ",
+          "samples": 179,
+          "accuracy": 68.2,
+          "buy_signals": 12,
+          "buy_up_rate": 75.0,
+          "avg_return": 0.43
+        },
+        {
+          "code": "300604.SZ",
+          "samples": 179,
+          "accuracy": 70.4,
+          "buy_signals": 12,
+          "buy_up_rate": 83.3,
+          "avg_return": 0.31
+        },
+        {
+          "code": "600118.SH",
+          "samples": 179,
+          "accuracy": 73.2,
+          "buy_signals": 4,
+          "buy_up_rate": 100.0,
+          "avg_return": 0.08
+        },
+        {
+          "code": "600183.SH",
+          "samples": 179,
+          "accuracy": 71.5,
+          "buy_signals": 4,
+          "buy_up_rate": 75.0,
+          "avg_return": 0.25
+        },
+        {
+          "code": "601231.SH",
+          "samples": 179,
+          "accuracy": 67.6,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.13
+        },
+        {
+          "code": "603225.SH",
+          "samples": 179,
+          "accuracy": 73.7,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.03
+        },
+        {
+          "code": "603228.SH",
+          "samples": 179,
+          "accuracy": 68.7,
+          "buy_signals": 25,
+          "buy_up_rate": 64.0,
+          "avg_return": 0.21
+        },
+        {
+          "code": "603876.SH",
+          "samples": 179,
+          "accuracy": 71.5,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": -0.04
+        },
+        {
+          "code": "603986.SH",
+          "samples": 179,
+          "accuracy": 69.3,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.29
+        },
+        {
+          "code": "605196.SH",
+          "samples": 179,
+          "accuracy": 69.8,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.06
+        },
+        {
+          "code": "688028.SH",
+          "samples": 179,
+          "accuracy": 63.7,
+          "buy_signals": 3,
+          "buy_up_rate": 100.0,
+          "avg_return": 0.23
+        },
+        {
+          "code": "688195.SH",
+          "samples": 179,
+          "accuracy": 63.1,
+          "buy_signals": 9,
+          "buy_up_rate": 66.7,
+          "avg_return": 0.44
+        },
+        {
+          "code": "688233.SH",
+          "samples": 179,
+          "accuracy": 68.7,
+          "buy_signals": 6,
+          "buy_up_rate": 83.3,
+          "avg_return": 0.14
+        },
+        {
+          "code": "688308.SH",
+          "samples": 179,
+          "accuracy": 68.2,
+          "buy_signals": 6,
+          "buy_up_rate": 50.0,
+          "avg_return": -0.05
+        },
+        {
+          "code": "688388.SH",
+          "samples": 179,
+          "accuracy": 68.7,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.3
+        },
+        {
+          "code": "688416.SH",
+          "samples": 179,
+          "accuracy": 67.6,
+          "buy_signals": 25,
+          "buy_up_rate": 76.0,
+          "avg_return": 0.16
+        },
+        {
+          "code": "688519.SH",
+          "samples": 179,
+          "accuracy": 70.9,
+          "buy_signals": 20,
+          "buy_up_rate": 70.0,
+          "avg_return": 0.15
+        },
+        {
+          "code": "688521.SH",
+          "samples": 179,
+          "accuracy": 66.5,
+          "buy_signals": 10,
+          "buy_up_rate": 80.0,
+          "avg_return": 0.6
+        },
+        {
+          "code": "688556.SH",
+          "samples": 179,
+          "accuracy": 72.1,
+          "buy_signals": 1,
+          "buy_up_rate": 100.0,
+          "avg_return": -0.15
+        },
+        {
+          "code": "688658.SH",
+          "samples": 179,
+          "accuracy": 71.5,
+          "buy_signals": 2,
+          "buy_up_rate": 100.0,
+          "avg_return": -0.02
+        },
+        {
+          "code": "688668.SH",
+          "samples": 179,
+          "accuracy": 64.8,
+          "buy_signals": 15,
+          "buy_up_rate": 86.7,
+          "avg_return": 0.15
+        },
+        {
+          "code": "688676.SH",
+          "samples": 179,
+          "accuracy": 67.0,
+          "buy_signals": 11,
+          "buy_up_rate": 81.8,
+          "avg_return": -0.1
+        },
+        {
+          "code": "688698.SH",
+          "samples": 179,
+          "accuracy": 76.0,
+          "buy_signals": 27,
+          "buy_up_rate": 81.5,
+          "avg_return": 0.51
+        },
+        {
+          "code": "688788.SH",
+          "samples": 179,
+          "accuracy": 62.6,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.54
+        }
+      ],
+      "all_return_std": 3.79,
+      "score_summary": {
+        "min": 7,
+        "max": 74,
+        "mean": 32.0,
+        "median": 29
+      },
+      "daily_signals": {
+        "days": 195,
+        "avg_per_day": 2.3,
+        "max_per_day": 12,
+        "min_per_day": 1,
+        "signal_ratio": 3.63,
+        "total_samples": 5370
+      },
+      "threshold_scan": {
+        "30": {
+          "signal_ratio": 49.61,
+          "buy_count": 2664,
+          "accuracy": 68.4,
+          "buy_up_rate": 51.7,
+          "buy_avg_return": 1.8,
+          "daily_avg": 14.9
+        },
+        "40": {
+          "signal_ratio": 32.87,
+          "buy_count": 1765,
+          "accuracy": 72.2,
+          "buy_up_rate": 58.5,
+          "buy_avg_return": 2.35,
+          "daily_avg": 9.9
+        },
+        "45": {
+          "signal_ratio": 24.67,
+          "buy_count": 1325,
+          "accuracy": 72.6,
+          "buy_up_rate": 62.0,
+          "buy_avg_return": 2.73,
+          "daily_avg": 7.4
+        },
+        "50": {
+          "signal_ratio": 16.44,
+          "buy_count": 883,
+          "accuracy": 72.0,
+          "buy_up_rate": 66.3,
+          "buy_avg_return": 3.34,
+          "daily_avg": 4.9
+        },
+        "55": {
+          "signal_ratio": 8.98,
+          "buy_count": 482,
+          "accuracy": 70.4,
+          "buy_up_rate": 71.0,
+          "buy_avg_return": 4.18,
+          "daily_avg": 2.7
+        },
+        "60": {
+          "signal_ratio": 3.63,
+          "buy_count": 195,
+          "accuracy": 68.6,
+          "buy_up_rate": 76.4,
+          "buy_avg_return": 5.07,
+          "daily_avg": 1.1
+        },
+        "65": {
+          "signal_ratio": 0.95,
+          "buy_count": 51,
+          "accuracy": 67.3,
+          "buy_up_rate": 82.4,
+          "buy_avg_return": 5.14,
+          "daily_avg": 0.3
+        },
+        "70": {
+          "signal_ratio": 0.07,
+          "buy_count": 4,
+          "accuracy": 66.7,
+          "buy_up_rate": 75.0,
+          "buy_avg_return": 5.12,
+          "daily_avg": 0.0
+        }
+      }
+    },
+    {
+      "period": "震荡偏强",
+      "desc": "3300→3600",
+      "train_end": "2025-03-01",
+      "test_end": "2026-05-29",
+      "samples": 8730,
+      "accuracy": 66.3,
+      "confusion_matrix": {
+        "tp": 531,
+        "fp": 148,
+        "fn": 2794,
+        "tn": 5257
+      },
+      "precision": 78.2,
+      "recall": 16.0,
+      "f1_score": 26.5,
+      "buy_signals": 679,
+      "buy_up_rate": 78.2,
+      "buy_avg_return": 4.94,
+      "sell_up_rate": 34.7,
+      "sell_avg_return": 0.11,
+      "score_bins": {
+        "<40(卖��)": {
+          "count": 5019,
+          "up_rate": 22.4,
+          "avg_return": -1.08
+        },
+        "40-49(观望)": {
+          "count": 1613,
+          "up_rate": 50.6,
+          "avg_return": 1.59
+        },
+        "50-59(观望+)": {
+          "count": 1419,
+          "up_rate": 60.3,
+          "avg_return": 2.62
+        },
+        "60-69(买入)": {
+          "count": 635,
+          "up_rate": 77.6,
+          "avg_return": 4.88
+        },
+        ">=70(强买入)": {
+          "count": 44,
+          "up_rate": 86.4,
+          "avg_return": 5.69
+        }
+      },
+      "stock_stats": [
+        {
+          "code": "002202.SZ",
+          "samples": 291,
+          "accuracy": 66.7,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.39
+        },
+        {
+          "code": "002353.SZ",
+          "samples": 291,
+          "accuracy": 64.3,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.54
+        },
+        {
+          "code": "002384.SZ",
+          "samples": 291,
+          "accuracy": 67.7,
+          "buy_signals": 36,
+          "buy_up_rate": 88.9,
+          "avg_return": 0.78
+        },
+        {
+          "code": "002460.SZ",
+          "samples": 291,
+          "accuracy": 67.4,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.26
+        },
+        {
+          "code": "002916.SZ",
+          "samples": 291,
+          "accuracy": 64.3,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.51
+        },
+        {
+          "code": "300136.SZ",
+          "samples": 291,
+          "accuracy": 63.6,
+          "buy_signals": 3,
+          "buy_up_rate": 100.0,
+          "avg_return": 0.58
+        },
+        {
+          "code": "300476.SZ",
+          "samples": 291,
+          "accuracy": 70.8,
+          "buy_signals": 49,
+          "buy_up_rate": 79.6,
+          "avg_return": 0.78
+        },
+        {
+          "code": "300604.SZ",
+          "samples": 291,
+          "accuracy": 70.8,
+          "buy_signals": 57,
+          "buy_up_rate": 68.4,
+          "avg_return": 0.64
+        },
+        {
+          "code": "600118.SH",
+          "samples": 291,
+          "accuracy": 68.4,
+          "buy_signals": 5,
+          "buy_up_rate": 100.0,
+          "avg_return": 0.43
+        },
+        {
+          "code": "600183.SH",
+          "samples": 291,
+          "accuracy": 69.4,
+          "buy_signals": 37,
+          "buy_up_rate": 83.8,
+          "avg_return": 0.64
+        },
+        {
+          "code": "601231.SH",
+          "samples": 291,
+          "accuracy": 61.2,
+          "buy_signals": 1,
+          "buy_up_rate": 0.0,
+          "avg_return": 0.38
+        },
+        {
+          "code": "603225.SH",
+          "samples": 291,
+          "accuracy": 69.1,
+          "buy_signals": 1,
+          "buy_up_rate": 100.0,
+          "avg_return": 0.14
+        },
+        {
+          "code": "603228.SH",
+          "samples": 291,
+          "accuracy": 70.8,
+          "buy_signals": 38,
+          "buy_up_rate": 84.2,
+          "avg_return": 0.39
+        },
+        {
+          "code": "603876.SH",
+          "samples": 291,
+          "accuracy": 65.6,
+          "buy_signals": 2,
+          "buy_up_rate": 50.0,
+          "avg_return": 0.39
+        },
+        {
+          "code": "603986.SH",
+          "samples": 291,
+          "accuracy": 62.5,
+          "buy_signals": 7,
+          "buy_up_rate": 85.7,
+          "avg_return": 0.52
+        },
+        {
+          "code": "605196.SH",
+          "samples": 291,
+          "accuracy": 68.0,
+          "buy_signals": 28,
+          "buy_up_rate": 92.9,
+          "avg_return": 0.51
+        },
+        {
+          "code": "688028.SH",
+          "samples": 291,
+          "accuracy": 68.0,
+          "buy_signals": 44,
+          "buy_up_rate": 81.8,
+          "avg_return": 0.7
+        },
+        {
+          "code": "688195.SH",
+          "samples": 291,
+          "accuracy": 66.7,
+          "buy_signals": 29,
+          "buy_up_rate": 93.1,
+          "avg_return": 0.71
+        },
+        {
+          "code": "688233.SH",
+          "samples": 291,
+          "accuracy": 70.4,
+          "buy_signals": 31,
+          "buy_up_rate": 87.1,
+          "avg_return": 0.54
+        },
+        {
+          "code": "688308.SH",
+          "samples": 291,
+          "accuracy": 63.9,
+          "buy_signals": 38,
+          "buy_up_rate": 68.4,
+          "avg_return": 0.8
+        },
+        {
+          "code": "688388.SH",
+          "samples": 291,
+          "accuracy": 57.4,
+          "buy_signals": 0,
+          "buy_up_rate": 0,
+          "avg_return": 0.43
+        },
+        {
+          "code": "688416.SH",
+          "samples": 291,
+          "accuracy": 61.9,
+          "buy_signals": 46,
+          "buy_up_rate": 63.0,
+          "avg_return": 0.45
+        },
+        {
+          "code": "688519.SH",
+          "samples": 291,
+          "accuracy": 66.7,
+          "buy_signals": 49,
+          "buy_up_rate": 81.6,
+          "avg_return": 0.88
+        },
+        {
+          "code": "688521.SH",
+          "samples": 291,
+          "accuracy": 62.5,
+          "buy_signals": 11,
+          "buy_up_rate": 72.7,
+          "avg_return": 0.54
+        },
+        {
+          "code": "688556.SH",
+          "samples": 291,
+          "accuracy": 67.0,
+          "buy_signals": 28,
+          "buy_up_rate": 60.7,
+          "avg_return": 0.15
+        },
+        {
+          "code": "688658.SH",
+          "samples": 291,
+          "accuracy": 70.4,
+          "buy_signals": 26,
+          "buy_up_rate": 65.4,
+          "avg_return": 0.16
+        },
+        {
+          "code": "688668.SH",
+          "samples": 291,
+          "accuracy": 66.7,
+          "buy_signals": 43,
+          "buy_up_rate": 72.1,
+          "avg_return": 0.75
+        },
+        {
+          "code": "688676.SH",
+          "samples": 291,
+          "accuracy": 66.3,
+          "buy_signals": 38,
+          "buy_up_rate": 78.9,
+          "avg_return": 0.41
+        },
+        {
+          "code": "688698.SH",
+          "samples": 291,
+          "accuracy": 67.4,
+          "buy_signals": 21,
+          "buy_up_rate": 85.7,
+          "avg_return": 0.14
+        },
+        {
+          "code": "688788.SH",
+          "samples": 291,
+          "accuracy": 63.2,
+          "buy_signals": 11,
+          "buy_up_rate": 90.9,
+          "avg_return": 0.02
+        }
+      ],
+      "all_return_std": 4.37,
+      "score_summary": {
+        "min": 7,
+        "max": 74,
+        "mean": 35.7,
+        "median": 34
+      },
+      "daily_signals": {
+        "days": 679,
+        "avg_per_day": 3.1,
+        "max_per_day": 12,
+        "min_per_day": 1,
+        "signal_ratio": 7.78,
+        "total_samples": 8730
+      },
+      "threshold_scan": {
+        "30": {
+          "signal_ratio": 57.09,
+          "buy_count": 4984,
+          "accuracy": 66.2,
+          "buy_up_rate": 53.7,
+          "buy_avg_return": 2.01,
+          "daily_avg": 17.1
+        },
+        "40": {
+          "signal_ratio": 42.51,
+          "buy_count": 3711,
+          "accuracy": 69.9,
+          "buy_up_rate": 59.3,
+          "buy_avg_return": 2.6,
+          "daily_avg": 12.8
+        },
+        "45": {
+          "signal_ratio": 33.87,
+          "buy_count": 2957,
+          "accuracy": 70.3,
+          "buy_up_rate": 62.3,
+          "buy_avg_return": 2.94,
+          "daily_avg": 10.2
+        },
+        "50": {
+          "signal_ratio": 24.03,
+          "buy_count": 2098,
+          "accuracy": 69.6,
+          "buy_up_rate": 66.1,
+          "buy_avg_return": 3.37,
+          "daily_avg": 7.2
+        },
+        "55": {
+          "signal_ratio": 15.21,
+          "buy_count": 1328,
+          "accuracy": 68.6,
+          "buy_up_rate": 72.0,
+          "buy_avg_return": 4.03,
+          "daily_avg": 4.6
+        },
+        "60": {
+          "signal_ratio": 7.78,
+          "buy_count": 679,
+          "accuracy": 66.3,
+          "buy_up_rate": 78.2,
+          "buy_avg_return": 4.94,
+          "daily_avg": 2.3
+        },
+        "65": {
+          "signal_ratio": 3.1,
+          "buy_count": 271,
+          "accuracy": 64.0,
+          "buy_up_rate": 83.0,
+          "buy_avg_return": 5.71,
+          "daily_avg": 0.9
+        },
+        "70": {
+          "signal_ratio": 0.5,
+          "buy_count": 44,
+          "accuracy": 62.3,
+          "buy_up_rate": 86.4,
+          "buy_avg_return": 5.69,
+          "daily_avg": 0.2
+        }
+      }
+    }
+  ]
+}

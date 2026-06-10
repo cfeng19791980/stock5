@@ -1,0 +1,586 @@
+# -*- coding: utf-8 -*-
+"""
+波段股票分析系统 v5.5 - 3日预测版
+升级内容:
+1. v5.5: 回退3日预测窗口(PREDICT_DAYS=3)，次日预测信号/噪音比太低
+2. 修复宏观因子SQL查询: 覆盖sh.000300和000300.SH两种格式
+3. 改RISE_THRESHOLD=0.03匹配3日窗口
+4. 改评分校准: 基于历史预测分布做动态校准
+"""
+
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
+
+import json
+import pandas as pd
+import numpy as np
+import sqlite3
+from datetime import datetime, timedelta
+import xgboost as xgb
+import lightgbm as lgb
+from catboost import CatBoostClassifier
+import pickle
+import os
+import warnings
+from llm_factors.factor_fusion import get_fusion_score
+warnings.filterwarnings('ignore')
+
+# ========== 配置 ==========
+DB_PATH = r'E:\stock5\stocks.db'
+CSV_PATH = r'e:\stock5\波段股票Top30.csv'
+OUTPUT_JSON = r'e:\stock5\result_v5.json'
+HOLDINGS_JSON = r'e:\stock5\holdings.json'
+MODEL_CACHE_DIR = r'E:\stock5\model_cache_v5'
+PREDICTION_LOG_TABLE = 'prediction_logs_v5'
+
+# 标签阈值（3日涨3%算上涨）
+RISE_THRESHOLD = 0.03
+
+# v5.5: 预测周期 - 改为3日(原1日，次日信号/噪音比太低)
+PREDICT_DAYS = 3
+
+# v5.3: 特征剪枝 - 保留Top12高MI特征
+SELECTED_FEATURES = [
+    'atr_20', 'high_low_ratio', 'ma10_ratio', 'ma20_ratio',
+    'hs300_ma_pos', 'macd', 'zz500_ma_pos', 'rsi6',
+    'month', 'atr_5', 'position_60', 'boll_ratio',
+    'index_rs'  # 大盘因子单独加
+]
+
+# 股票名称映射
+STOCK_NAMES = {
+    '605196.SH': '华通线缆', '688028.SH': '沃尔德', '688195.SH': '芯源微',
+    '688233.SH': '铂力特', '688519.SH': '天奈科技', '002353.SZ': '杰瑞股份',
+    '002384.SZ': '东山精密', '600183.SH': '生益科技', '603876.SH': '鼎胜新材',
+    '603986.SH': '兆易创新', '688416.SH': '恒玄科技', '688521.SH': '芯原股份',
+    '688676.SH': '金迪克', '300136.SZ': '信维通导', '603225.SH': '新凤鸣',
+    '688308.SH': '拓荆科技', '688388.SH': '嘉元科技', '688556.SH': '高测股份',
+    '600118.SH': '中国卫星', '601231.SH': '环旭电子', '688658.SH': '悦康药业',
+    '688668.SH': '鼎通股份', '688788.SH': '科思科技', '002202.SZ': '金风科技',
+    '002916.SZ': '深南电路', '300604.SZ': '长川科技', '603228.SH': '景旺电子',
+    '688698.SH': '博众精工', '002460.SZ': '赣锋锂业', '300476.SZ': '胜宏科技',
+}
+
+print("=" * 70)
+print(f"波段股票分析系统 v5.4 - 次日预测版 (PREDICT_DAYS={PREDICT_DAYS})")
+print(f"特征: Top13(MI精选) + 大盘因子 | 模型: 3融合+LLM | 反馈闭环: ON")
+print("=" * 70)
+
+# ========== Phase 1: 扩展特征提取 ==========
+def extract_features_v5(df, i, _conn=None):
+    """v5特征提取 - 25个特征"""
+    if i < 30 or i >= len(df):
+        return None
+    
+    row = df.iloc[i]
+    close = row['close']
+    high = row['high']
+    low = row['low']
+    volume = row['volume']
+    
+    # 基础特征 (保留v4的12个)
+    feat = {
+        'pct_chg': row['pct_chg'],
+        'ma5_ratio': close / row['ma5'] if row['ma5'] > 0 else 1,
+        'ma10_ratio': close / row['ma10'] if row['ma10'] > 0 else 1,
+        'rsi6': row['rsi6'] if pd.notna(row['rsi6']) else 50,
+        'macd': row['macd'] if pd.notna(row['macd']) else 0,
+        'ma20_ratio': close / row['ma20'] if pd.notna(row['ma20']) and row['ma20'] > 0 else 1,
+        'k': row['k'] if pd.notna(row['k']) else 50,
+        'd': row['d'] if pd.notna(row['d']) else 50,
+        'boll_ratio': close / row['boll_upper'] if pd.notna(row['boll_upper']) and row['boll_upper'] > 0 else 1,
+        'bias10': row['bias10'] if pd.notna(row['bias10']) else 0,
+        'vr': row['vr'] if pd.notna(row['vr']) else 1,
+        'amplitude': row['amplitude'] if pd.notna(row['amplitude']) else 0,
+    }
+    
+    # 新增特征组1: 波动类 (5个)
+    if i >= 5:
+        atr5 = calculate_atr(df, i, 5)
+        feat['atr_5'] = atr5
+    else:
+        feat['atr_5'] = 0
+    
+    if i >= 20:
+        atr20 = calculate_atr(df, i, 20)
+        feat['atr_20'] = atr20
+        feat['volatility_ratio'] = atr5 / atr20 if atr20 > 0 else 1
+    else:
+        feat['atr_20'] = 0
+        feat['volatility_ratio'] = 1
+    
+    # 振幅均值
+    if i >= 10:
+        amp_mean = df['amplitude'].iloc[i-10:i].mean()
+        feat['amplitude_10_mean'] = amp_mean
+    else:
+        feat['amplitude_10_mean'] = 0
+    
+    # 新增特征组2: 量价关系 (3个)
+    if i >= 5:
+        vol_ma5 = df['volume'].iloc[i-5:i].mean()
+        feat['volume_ratio'] = volume / vol_ma5 if vol_ma5 > 0 else 1
+        
+        # OBV简化版
+        obv_change = 0
+        for j in range(i-5, i):
+            chg = df['close'].iloc[j] - df['close'].iloc[j-1] if j > 0 else 0
+            obv_change += df['volume'].iloc[j] * (1 if chg > 0 else -1)
+        feat['obv_trend'] = obv_change / volume if volume > 0 else 0
+    else:
+        feat['volume_ratio'] = 1
+        feat['obv_trend'] = 0
+    
+    # 新增特征组3: 位置类 (3个)
+    if i >= 20:
+        low_20 = df['low'].iloc[i-20:i].min()
+        high_20 = df['high'].iloc[i-20:i].max()
+        feat['position_20'] = (close - low_20) / (high_20 - low_20 + 0.01)
+    else:
+        feat['position_20'] = 0.5
+    
+    if i >= 60:
+        low_60 = df['low'].iloc[i-60:i].min()
+        high_60 = df['high'].iloc[i-60:i].max()
+        feat['position_60'] = (close - low_60) / (high_60 - low_60 + 0.01)
+    else:
+        feat['position_60'] = 0.5
+    
+    feat['high_low_ratio'] = high / low if low > 0 else 1
+    
+    # 新增特征组4: 时间类 (2个)
+    try:
+        date_val = pd.to_datetime(row['date'])
+        feat['day_of_week'] = date_val.dayofweek
+        feat['month'] = date_val.month
+    except:
+        feat['day_of_week'] = 2
+        feat['month'] = 4
+    
+    # 新增特征组5: 动量类 (额外3个)
+    if i >= 3:
+        feat['pct_chg_3d'] = (close - df['close'].iloc[i-3]) / df['close'].iloc[i-3] * 100
+    else:
+        feat['pct_chg_3d'] = 0
+    
+    if i >= 5:
+        feat['pct_chg_5d'] = (close - df['close'].iloc[i-5]) / df['close'].iloc[i-5] * 100
+    else:
+        feat['pct_chg_5d'] = 0
+    
+    feat['momentum'] = feat['pct_chg'] + feat['pct_chg_3d'] + feat['pct_chg_5d']
+    
+# ===== 新增 v5.3 特征剪枝: 保留Top12高MI特征 =====
+    # 基于cross-stock互信息分析, 删除低关联特征(day_of_week/amplitude_10_mean/vr/index_rs/position_20)
+    return feat
+
+def calculate_atr(df, i, window):
+    """计算ATR"""
+    tr_list = []
+    for j in range(i-window+1, i+1):
+        if j > 0:
+            high = df['high'].iloc[j]
+            low = df['low'].iloc[j]
+            prev_close = df['close'].iloc[j-1]
+            tr = max(high - low, abs(high - prev_close), abs(low - prev_close))
+            tr_list.append(tr)
+    return np.mean(tr_list) if tr_list else 0
+
+# ========== 宏观因子预加载 ==========
+def load_macro_factors(conn):
+    """预加载大盘/板块/基本面因子，按日期索引，覆盖全历史"""
+    # 从 index_daily 构建大盘因子（覆盖全历史）
+    try:
+        # 以 sh. 格式为主（有完整pct_chg），补充 000300.SH 格式的最新未覆盖日期
+        idx = pd.read_sql("""
+            SELECT * FROM index_daily 
+            WHERE code IN ('sh.000300','sh.000905','000300.SH','000905.SH') 
+            ORDER BY date
+        """, conn)
+        if not idx.empty:
+            idx['date'] = pd.to_datetime(idx['date']).dt.strftime('%Y-%m-%d')
+
+            def build_index_series(idx_df, sh_code, code_sh, prefix):
+                """合并两种编码格式的指数数据（sh.格式优先）"""
+                sh_part = idx_df[idx_df['code'] == sh_code][['date','close','pct_chg','ma20','ma5']].copy()
+                sh_part.columns = ['date', f'{prefix}_close', f'{prefix}_pct', f'{prefix}_ma20', f'{prefix}_ma5']
+                # 000300.SH 补充sh.格式缺少的日期
+                extra = idx_df[idx_df['code'] == code_sh][['date','close']].copy()
+                extra = extra[~extra['date'].isin(sh_part['date'])]
+                if not extra.empty:
+                    extra = extra.sort_values('date')
+                    # 从sh.部分取最后一条的close作为后续pct_chg计算基准
+                    last_sh = sh_part.sort_values('date').iloc[-1] if len(sh_part) > 0 else None
+                    prev_close = last_sh[f'{prefix}_close'] if last_sh is not None else extra.iloc[0]['close']
+                    pct_chgs = []
+                    for _, r in extra.iterrows():
+                        pct = (r['close'] - prev_close) / prev_close * 100 if prev_close > 0 else 0
+                        pct_chgs.append(pct)
+                        prev_close = r['close']
+                    extra['pct_chg'] = pct_chgs
+                    extra[f'{prefix}_ma20'] = extra['close'] / 1.0  # 简化为close近似
+                    extra[f'{prefix}_ma5'] = extra['close'] / 1.0
+                    extra.columns = ['date', f'{prefix}_close', f'{prefix}_pct', f'{prefix}_ma20', f'{prefix}_ma5']
+                    combined = pd.concat([sh_part, extra], ignore_index=True).sort_values('date').drop_duplicates('date')
+                else:
+                    combined = sh_part
+                return combined
+
+            hs300 = build_index_series(idx, 'sh.000300', '000300.SH', 'hs300')
+            zz500 = build_index_series(idx, 'sh.000905', '000905.SH', 'zz500')
+
+            macro = hs300.merge(zz500, on='date', how='left')
+            macro = macro.set_index('date')
+            # 填充可能缺失的中证500数据
+            macro['zz500_close'] = macro['zz500_close'].fillna(macro['hs300_close'])
+            macro['zz500_pct'] = macro['zz500_pct'].fillna(0)
+            macro['zz500_ma20'] = macro['zz500_ma20'].fillna(macro['hs300_ma20'])
+            print(f"  大盘因子(合并): {len(macro)}条 ({macro.index.min()} ~ {macro.index.max()})")
+        else:
+            macro = None
+    except Exception as e:
+        print(f"  大盘因子加载失败: {e}")
+        import traceback; traceback.print_exc()
+        macro = None
+    
+    # 补充/覆盖 macro_factors 表中的最新数据（趋势方向等）
+    # 同时用macro_factors中index_daily没有的日期行补充大盘因子数据
+    try:
+        mf = pd.read_sql("SELECT * FROM macro_factors", conn)
+        if not mf.empty and macro is not None:
+            mf['date'] = pd.to_datetime(mf['date']).dt.strftime('%Y-%m-%d')
+            # 取每个日期的最新一条
+            mf = mf.sort_values('date').drop_duplicates('date', keep='last').set_index('date')
+            for dt in mf.index:
+                row = mf.loc[dt]
+                if isinstance(row, pd.DataFrame):
+                    row = row.iloc[0]
+                if dt in macro.index:
+                    # 覆盖趋势和板块字段
+                    for col in ['hs300_trend','zz500_trend','sector_rotation','top_sector']:
+                        if col in mf.columns and pd.notna(row.get(col)):
+                            macro.loc[dt, col] = row[col]
+                else:
+                    # 不在 index_daily 中的日期 -> 用 macro_factors 的数据补一行
+                    new_row = {c: 0 for c in macro.columns}
+                    for c in ['hs300_close','hs300_pct','hs300_ma20','hs300_ma5']:
+                        if c in mf.columns and pd.notna(row.get(c)):
+                            new_row[c] = row[c]
+                    for c in ['zz500_close','zz500_pct','zz500_ma20']:
+                        if c in mf.columns and pd.notna(row.get(c)):
+                            new_row[c] = row[c]
+                    for c in ['hs300_trend','zz500_trend','sector_rotation','top_sector']:
+                        if c in mf.columns and pd.notna(row.get(c)):
+                            new_row[c] = row[c]
+                    macro.loc[dt] = pd.Series(new_row)
+            macro = macro.sort_index()
+            print(f"  已覆盖趋势方向+补充macro_factors最新日期")
+    except Exception as e:
+        print(f"  macro_factors补充异常: {e}")
+        pass
+    
+    if macro is not None:
+        # 补充sector_rotation列（如果没有）
+        if 'sector_rotation' not in macro.columns:
+            macro['sector_rotation'] = 0.0
+    
+    # 基本面因子
+    try:
+        fund = pd.read_sql("SELECT * FROM factor_signals", conn)
+        if not fund.empty:
+            fund['date'] = pd.to_datetime(fund['date']).dt.strftime('%Y-%m-%d')
+            print(f"  基本面因子: {len(fund)}条 ({fund['code'].nunique()}只股票)")
+        else:
+            fund = None
+    except:
+        fund = None
+    
+    return macro, fund
+
+def add_macro_features(feat, row_date, code, macro, fund):
+    """按日期匹配添加宏观因子到特征字典"""
+    if macro is not None and row_date in macro.index:
+        m = macro.loc[row_date]
+        if isinstance(m, pd.DataFrame):
+            m = m.iloc[0]
+        feat['index_rs'] = feat['pct_chg'] - m.get('zz500_pct', 0)
+        trend_map = {'up': 1.0, 'sideways': 0.0, 'down': -1.0}
+        feat['hs300_trend_val'] = trend_map.get(m.get('hs300_trend', ''), 0.0)
+        feat['zz500_trend_val'] = trend_map.get(m.get('zz500_trend', ''), 0.0)
+        feat['hs300_ma_position'] = m['hs300_close'] / m['hs300_ma20'] if m.get('hs300_ma20', 0) > 0 else 1.0
+        feat['zz500_ma_position'] = m['zz500_close'] / m['zz500_ma20'] if m.get('zz500_ma20', 0) > 0 else 1.0
+        feat['sector_rotation'] = m.get('sector_rotation', 0) if pd.notna(m.get('sector_rotation', 0)) else 0.0
+    else:
+        feat['index_rs'] = 0.0
+        feat['hs300_trend_val'] = 0.0
+        feat['zz500_trend_val'] = 0.0
+        feat['hs300_ma_position'] = 1.0
+        feat['zz500_ma_position'] = 1.0
+        feat['sector_rotation'] = 0.0
+    
+    if fund is not None:
+        fund_row = fund[(fund['code'] == code) & (fund['date'] == row_date)]
+        if not fund_row.empty:
+            feat['fundamental_score'] = fund_row['fin_score'].iloc[0]
+            feat['llm_confidence'] = fund_row['llm_confidence'].iloc[0]
+        else:
+            feat['fundamental_score'] = 50.0
+            feat['llm_confidence'] = 0.0
+    else:
+        feat['fundamental_score'] = 50.0
+        feat['llm_confidence'] = 0.0
+    
+    return feat
+
+# ========== Phase 2: 多模型融合 ==========
+def train_models_v5(stock_pool, conn):
+    """训练多模型 (含大盘/板块/LLM因子)"""
+    models = {'xgb': {}, 'lgb': {}, 'cat': {}}
+    
+    print("训练融合模型...")
+    
+    # 预加载宏观因子
+    macro, fund = load_macro_factors(conn)
+    
+    for code in stock_pool:
+        try:
+            df = pd.read_sql(f"SELECT * FROM daily_price WHERE code='{code}' ORDER BY date", conn)
+            if len(df) < 100:
+                continue
+            
+            features = []
+            for i in range(60, len(df)-PREDICT_DAYS):
+                feat = extract_features_v5(df.iloc[::-1], len(df)-i-1)
+                if feat:
+                    close = df.iloc[i]['close']
+                    close_fut = df.iloc[i+PREDICT_DAYS]['close']
+                    rise = (close_fut - close) / close if close > 0 else 0
+                    feat['target'] = 1 if rise >= RISE_THRESHOLD else 0
+                    # 按日期匹配宏观因子
+                    try:
+                        row_date = str(df.iloc[i]['date'])
+                        feat = add_macro_features(feat, row_date, code, macro, fund)
+                    except:
+                        feat['index_rs'] = 0.0
+                        feat['hs300_trend_val'] = 0.0
+                        feat['zz500_trend_val'] = 0.0
+                        feat['hs300_ma_position'] = 1.0
+                        feat['zz500_ma_position'] = 1.0
+                        feat['sector_rotation'] = 0.0
+                        feat['fundamental_score'] = 50.0
+                        feat['llm_confidence'] = 0.0
+                    features.append(feat)
+            
+            if len(features) < 30:
+                continue
+            
+            ds = pd.DataFrame(features)
+            
+            # ===== 严格时间序列分割 =====
+            n = len(ds)
+            split_idx = int(n * 0.8)
+            
+            train_ds = ds.iloc[:split_idx]
+            val_ds = ds.iloc[split_idx:]
+            
+            X_train = train_ds.drop('target', axis=1)
+            y_train = train_ds['target']
+            X_val = val_ds.drop('target', axis=1)
+            y_val = val_ds['target']
+            
+            # v5.3: 特征剪枝 - 只保留入选特征
+            keep = [f for f in SELECTED_FEATURES if f in X_train.columns]
+            X_train = X_train[keep]
+            X_val = X_val[keep]
+            
+            # XGBoost (优化: 低学习率+更多树+早停)
+            xgb_model = xgb.XGBClassifier(
+                n_estimators=500, max_depth=3, random_state=42, verbosity=0,
+                learning_rate=0.01, min_child_weight=4, subsample=0.75,
+                colsample_bytree=0.75, reg_alpha=0.1, reg_lambda=1.0,
+                early_stopping_rounds=30, eval_metric='logloss'
+            )
+            xgb_model.fit(X_train, y_train, eval_set=[(X_val, y_val)], verbose=False)
+            models['xgb'][code] = xgb_model
+            
+            # LightGBM (优化: 低学习率+更多树+早停)
+            lgb_model = lgb.LGBMClassifier(
+                n_estimators=500, max_depth=3, random_state=42, verbose=-1,
+                learning_rate=0.01, min_child_weight=4, subsample=0.75,
+                colsample_bytree=0.75, reg_alpha=0.1, reg_lambda=1.0
+            )
+            lgb_model.fit(X_train, y_train, eval_set=[(X_val, y_val)],
+                         callbacks=[lgb.early_stopping(30), lgb.log_evaluation(0)])
+            models['lgb'][code] = lgb_model
+            
+            # CatBoost (优化: 低学习率+更多树+早停)
+            cat_model = CatBoostClassifier(
+                iterations=500, depth=3, random_state=42, verbose=False,
+                learning_rate=0.01, min_child_samples=4, subsample=0.75,
+                l2_leaf_reg=3.0, early_stopping_rounds=30
+            )
+            cat_model.fit(X_train, y_train, eval_set=(X_val, y_val), verbose=False)
+            models['cat'][code] = cat_model
+            
+        except Exception as e:
+            continue
+    
+    print(f"训练完成: XGB {len(models['xgb'])}, LGB {len(models['lgb'])}, CAT {len(models['cat'])}")
+    return models
+
+def predict_fusion(models, code, feat, all_probas=None):
+    """三模型融合预测，返回真实上涨概率×100"""
+    try:
+        # 确保特征列顺序与XGB模型训练一致
+        if code in models['xgb']:
+            train_feats = models['xgb'][code].get_booster().feature_names
+        else:
+            train_feats = list(feat.keys())
+        feat_arr = np.array([[feat.get(k, 0.0) for k in train_feats]])
+        xgb_pred = models['xgb'][code].predict_proba(feat_arr)[0][1] if code in models['xgb'] else 0.5
+        lgb_pred = models['lgb'][code].predict_proba(feat_arr)[0][1] if code in models['lgb'] else 0.5
+        cat_pred = models['cat'][code].predict_proba(feat_arr)[0][1] if code in models['cat'] else 0.5
+        
+        fusion_score = xgb_pred * 0.4 + lgb_pred * 0.35 + cat_pred * 0.25
+        
+        # 分数 = 真实融合概率 * 100，不做任何映射或分位数拉伸
+        return int(np.clip(fusion_score * 100, 0, 100))
+    except:
+        return 50
+
+# ========== Phase 3: 反馈闭环 ==========
+def init_prediction_log(conn):
+    """初始化预测记录表"""
+    cursor = conn.cursor()
+    cursor.execute(f'''CREATE TABLE IF NOT EXISTS {PREDICTION_LOG_TABLE} (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        stock_code TEXT,
+        predict_date TEXT,
+        predict_score INTEGER,
+        predict_action TEXT,
+        predict_price REAL,
+        actual_result TEXT DEFAULT 'pending',
+        actual_return REAL DEFAULT 0,
+        feedback_time TEXT
+    )''')
+    conn.commit()
+
+def log_prediction(conn, code, score, action, price):
+    """记录预测"""
+    cursor = conn.cursor()
+    cursor.execute(f'''INSERT INTO {PREDICTION_LOG_TABLE}
+        (stock_code, predict_date, predict_score, predict_action, predict_price)
+        VALUES (?, ?, ?, ?, ?)''',
+        (code, datetime.now().strftime('%Y-%m-%d'), score, action, price))
+    conn.commit()
+
+# ========== 主流程 ==========
+conn = sqlite3.connect(DB_PATH)
+stock_pool = pd.read_csv(CSV_PATH)['股票代码'].tolist()
+print(f"股票池: {len(stock_pool)}只")
+
+# 初始化反馈表
+init_prediction_log(conn)
+
+# 训练模型
+models = train_models_v5(stock_pool, conn)
+
+# 保存模型缓存
+os.makedirs(MODEL_CACHE_DIR, exist_ok=True)
+with open(os.path.join(MODEL_CACHE_DIR, 'models_v5.pkl'), 'wb') as f:
+    pickle.dump(models, f)
+print(f"模型缓存已保存")
+
+# 分析股票
+print("\n分析股票池...")
+stocks_analysis = []
+
+# 预加载宏观因子（分析用）
+macro_analysis, fund_analysis = load_macro_factors(conn)
+
+for code in stock_pool:
+    if code not in models['xgb']:
+        continue
+    try:
+        df = pd.read_sql(f"SELECT * FROM daily_price WHERE code='{code}' ORDER BY date DESC LIMIT 60", conn)
+        feat = extract_features_v5(df.iloc[::-1], len(df)-1)
+        if not feat:
+            continue
+
+        # 添加当前宏观因子
+        try:
+            latest_date = str(df.iloc[0]['date'])
+            feat = add_macro_features(feat, latest_date, code, macro_analysis, fund_analysis)
+        except:
+            feat['index_rs'] = 0.0
+            feat['hs300_trend_val'] = 0.0
+            feat['zz500_trend_val'] = 0.0
+            feat['hs300_ma_position'] = 1.0
+            feat['zz500_ma_position'] = 1.0
+            feat['sector_rotation'] = 0.0
+            feat['fundamental_score'] = 50.0
+            feat['llm_confidence'] = 0.0
+
+        # Step 1: 技术指标模型预测
+        # 只保留筛选后的特征
+        feat_filtered = {k: v for k, v in feat.items() if k in SELECTED_FEATURES}
+        tech_score = predict_fusion(models, code, feat_filtered)
+        score = tech_score
+
+        latest = df.iloc[0]
+        prev = df.iloc[1] if len(df) > 1 else None  # 前一条（昨天）
+        name = STOCK_NAMES.get(code, code)
+
+        # 计算实际涨跌幅（数据库里 pct_chg 可能为空）
+        close_val = float(latest['close'])
+        prev_close_val = float(prev['close']) if prev is not None else 0.0
+        pct_val = float(latest['pct_chg']) if pd.notna(latest.get('pct_chg')) else 0.0
+        if pct_val == 0.0 and prev_close_val > 0:
+            pct_val = round((close_val - prev_close_val) / prev_close_val * 100, 2)
+
+        # 记录预测
+        action = 'buy' if score >= 60 else ('sell' if score < 40 else 'hold')
+        log_prediction(conn, code, score, action, close_val)
+        
+        stocks_analysis.append({
+            'code': code,
+            'name': name,
+            'score': score,
+            'close': round(close_val, 2),
+            'pct_chg': pct_val,
+            'volume': int(latest['volume']) if pd.notna(latest['volume']) else 0,
+            'date': str(latest['date']),
+            'advice': f"评分{score}分。{'建议买入' if score >= 60 else ('建议卖出' if score < 40 else '持有观望')}",
+            'buy_signal': score >= 60,
+            'sell_signal': score < 40,
+            'features_count': len(feat),
+        })
+    except:
+        continue
+
+conn.close()
+
+# 输出结果
+result = {
+    'version': 'v5.4',
+    'timestamp': datetime.now().isoformat(),
+    'feature_count': len(SELECTED_FEATURES),
+    'feature_names': SELECTED_FEATURES,
+    'stocks': sorted(stocks_analysis, key=lambda x: x['score'], reverse=True),
+    'feedback_enabled': True,
+}
+
+# 递归转换 NaN → None
+def _clean_nan(v):
+    import math
+    if isinstance(v, dict):  return {k: _clean_nan(v) for k, v in v.items()}
+    if isinstance(v, list):  return [_clean_nan(x) for x in v]
+    if isinstance(v, float) and (math.isnan(v) or math.isinf(v)): return None
+    return v
+result = _clean_nan(result)
+with open(OUTPUT_JSON, 'w', encoding='utf-8') as f:
+    json.dump(result, f, ensure_ascii=False, indent=2)
+
+print(f"\n分析完成: {len(stocks_analysis)}只股票")
+print(f"结果已保存: {OUTPUT_JSON}")
+print("=" * 70)

@@ -30,8 +30,8 @@ CSV_PATH = r'E:\stock5\波段股票Top30.csv'
 OUTPUT_JSON = r'E:\stock5\result_v5.json'
 MODEL_CACHE_DIR = r'E:\stock5\model_cache_v6'
 
-RISE_THRESHOLD = 0.01
-PREDICT_DAYS = 1
+RISE_THRESHOLD = 0.03
+PREDICT_DAYS = 3
 
 # 特征配置
 ALPHA158_PRIORITY = 'p2'  # p0=25个 p1=55个 p2=80个
@@ -65,40 +65,6 @@ STOCK_NAMES = {
 }
 
 # ==================== 特征提取 ====================
-
-# ==================== 市场环境检测 ====================
-def detect_market_condition(conn):
-    try:
-        df_idx = pd.read_sql("SELECT date, close FROM index_daily WHERE code='000300.SH' ORDER BY date DESC LIMIT 30", conn)
-        if len(df_idx) < 20:
-            return 'normal'
-        df_idx = df_idx.iloc[::-1]
-        df_idx['pct_chg'] = df_idx['close'].pct_change() * 100
-        volatility = df_idx['pct_chg'].tail(20).std()
-        current_price = df_idx['close'].iloc[-1]
-        up_days = (df_idx['pct_chg'].tail(5) > 0).sum()
-        sentiment = up_days / 5
-        print("  市场检测: 波动率={:.2f}%, 大盘={:.0f}, 情绪={:.0f}%".format(volatility, current_price, sentiment*100))
-        if volatility > 3.5 or current_price > 5200:
-            print("  -> 保守模式")
-            return 'conservative'
-        elif volatility > 1.5 and sentiment < 0.4:
-            print("  -> 保守模式")
-            return 'conservative'
-        else:
-            print("  -> 正常模式")
-            return 'normal'
-    except Exception as e:
-        print("  市场检测异常: {}".format(e))
-        return 'normal'
-
-MODEL_PARAMS = {
-    'normal': {'xgb': {'n_estimators': 180, 'max_depth': 2, 'learning_rate': 0.008}, 'lgb': {'n_estimators': 180, 'max_depth': 2, 'learning_rate': 0.008}, 'cat': {'iterations': 250, 'depth': 3, 'learning_rate': 0.008}},
-    'conservative': {'xgb': {'n_estimators': 250, 'max_depth': 2, 'learning_rate': 0.03}, 'lgb': {'n_estimators': 250, 'max_depth': 2, 'learning_rate': 0.03}, 'cat': {'iterations': 280, 'depth': 3, 'learning_rate': 0.03}}
-}
-# 买入阈值
-BUY_THRESHOLDS = {'normal': 54, 'conservative': 65}
-
 def calculate_atr(df, i, window):
     tr_list = []
     for j in range(i - window + 1, i + 1):
@@ -230,26 +196,6 @@ def extract_features_v6(df_reversed, i):
         feat['cdl_net_signal'] = 0
         feat['cdl_strong_reversal'] = 0
         feat['cdl_doji_present'] = 0
-    
-    # ---- Stock7 因子特征 (v7新增) ----
-    # 基于反向因子分析发现的有效因子
-    try:
-        # 取最近60条正序数据（stock7需要正序）
-        lookback = min(i + 1, 60)
-        df_subset = df_reversed.iloc[i - lookback + 1:i + 1].iloc[::-1].reset_index(drop=True)
-        from stock7_trend_predictor import get_stock7_features, get_stock7_risk_multiplier
-        stock7_feat = get_stock7_features(df_subset)
-        stock7_feat['stock7_risk_mult'] = get_stock7_risk_multiplier(df_subset)
-        feat.update(stock7_feat)
-    except Exception:
-        # Stock7 特征不可用时补默认值
-        feat['stock7_score'] = 0.5
-        feat['stock7_risk_mult'] = 1.0
-        for name in ['amplitude', 'boll_ratio', 'kdj_momentum', 'rsi_momentum',
-                     'macd_momentum', 'volume_momentum', 'amount_momentum', 'trend_position']:
-            feat[f'stock7_{name}'] = 0.5
-            feat[f'stock7_{name}_bullish'] = 0.0
-            feat[f'stock7_{name}_bearish'] = 0.0
     
     return feat
 
@@ -384,8 +330,6 @@ def train_models_v6(stock_pool, conn, train_end=None):
     Args:
         train_end: 训练截止日期 (str 'YYYY-MM-DD')，用于回测防止数据泄露
     """
-    market_mode = detect_market_condition(conn)
-    params = MODEL_PARAMS[market_mode]
     print(f"\n训练v6模型 (每只票独立)...{' 训练截止: ' + train_end if train_end else ''}")
     macro, fund = load_macro_factors(conn, date_limit=train_end if train_end else None)
     
@@ -448,9 +392,9 @@ def train_models_v6(stock_pool, conn, train_end=None):
             
             # XGBoost (v6.1: 加大正则防过拟合，收紧早停)
             xgb_model = xgb.XGBClassifier(
-                n_estimators= params['xgb']['n_estimators'], max_depth=params['xgb']['max_depth'], random_state=42,
-                learning_rate= params['xgb']['learning_rate'], min_child_weight=8, subsample=0.6,
-                colsample_bytree=0.5, reg_alpha= 0.1, reg_lambda= 1.0,
+                n_estimators=200, max_depth=2, random_state=42,
+                learning_rate=0.01, min_child_weight=8, subsample=0.6,
+                colsample_bytree=0.5, reg_alpha=0.5, reg_lambda=3.0,
                 early_stopping_rounds=15, eval_metric='logloss',
                 verbosity=0,
             )
@@ -459,9 +403,9 @@ def train_models_v6(stock_pool, conn, train_end=None):
             
             # LightGBM (v6.1: 更大正则)
             lgb_model = lgb.LGBMClassifier(
-                n_estimators= params['xgb']['n_estimators'], max_depth=params['xgb']['max_depth'], random_state=42,
-                learning_rate= params['xgb']['learning_rate'], min_child_weight=8, subsample=0.6,
-                colsample_bytree=0.5, reg_alpha= 0.1, reg_lambda= 1.0,
+                n_estimators=200, max_depth=2, random_state=42,
+                learning_rate=0.01, min_child_weight=8, subsample=0.6,
+                colsample_bytree=0.5, reg_alpha=0.5, reg_lambda=3.0,
                 min_split_gain=0.1,
                 verbose=-1,
             )
@@ -471,9 +415,9 @@ def train_models_v6(stock_pool, conn, train_end=None):
             
             # CatBoost (v6.1: 更大正则)
             cat_model = CatBoostClassifier(
-                iterations= params['cat']['iterations'], depth=params['cat']['depth'], random_state=42,
-                learning_rate= params['cat']['learning_rate'], min_child_samples=8, subsample=0.6,
-                l2_leaf_reg= 3.0, early_stopping_rounds=15,
+                iterations=200, depth=2, random_state=42,
+                learning_rate=0.01, min_child_samples=8, subsample=0.6,
+                l2_leaf_reg=5.0, early_stopping_rounds=15,
                 verbose=False,
             )
             cat_model.fit(X_train, y_train, eval_set=(X_val, y_val), verbose=False)
@@ -504,8 +448,7 @@ def predict_fusion_v6(models, code, feat):
         lgb_p = models['lgb'][code].predict_proba(feat_arr)[0][1] if code in models['lgb'] else 0.5
         cat_p = models['cat'][code].predict_proba(feat_arr)[0][1] if code in models['cat'] else 0.5
         
-        score = xgb_p * 0.5 + lgb_p * 0.3 + cat_p * 0.2
-        # 直接输出模型概率，不做人为校准
+        score = xgb_p * 0.4 + lgb_p * 0.35 + cat_p * 0.25
         return int(np.clip(score * 100, 0, 100))
     except Exception as e:
         print(f"    predict error: {e}")
@@ -520,36 +463,32 @@ def risk_check(feat, macro=None, row_date=None):
     """
     risk = 1.0
     
-    # 1. 大盘风控 (权重0.4) - 放宽阈值
+    # 1. 大盘风控 (权重0.4)
     hs300_trend = feat.get('hs300_trend_val', 0)
     zz500_trend = feat.get('zz500_trend_val', 0)
     index_rs = feat.get('index_rs', 0)
     
-    if hs300_trend < -1.0:  # 大盘向下 (从-0.5放宽到-1.0)
-        risk *= 0.7
+    if hs300_trend < -0.5:  # 大盘向下
+        risk *= 0.6
     elif hs300_trend < 0:   # 大盘偏弱
+        risk *= 0.85
+    
+    if index_rs < -3:       # 个股大幅跑输大盘
+        risk *= 0.7
+    
+    # 2. 板块轮动 (权重0.3)
+    sector = feat.get('sector_rotation', 0)
+    if sector < -0.3:
+        risk *= 0.8
+    elif sector < -0.1:
         risk *= 0.9
     
-    if index_rs < -5:       # 个股大幅跑输大盘 (从-3放宽到-5)
-        risk *= 0.8
-    
-    # 2. 板块轮动 (权重0.3) - 放宽阈值
-    sector = feat.get('sector_rotation', 0)
-    if sector < -0.5:
-        risk *= 0.85
-    elif sector < -0.2:
-        risk *= 0.95
-    
-    # 3. 个股波动率风控 (权重0.3) - 放���阈值
+    # 3. 个股波动率风控 (权重0.3)
     volatility = feat.get('volatility_ratio', 1.0)
-    if volatility > 2.5:    # 波动异常放大 (从2.0放宽到2.5)
-        risk *= 0.8
-    elif volatility > 1.8:
-        risk *= 0.95
-    
-    # 4. Stock7 因子风控 (v7新增)
-    stock7_risk = feat.get('stock7_risk_mult', 1.0)
-    risk *= stock7_risk
+    if volatility > 2.0:    # 波动异常放大
+        risk *= 0.75
+    elif volatility > 1.5:
+        risk *= 0.9
     
     return risk
 
@@ -616,9 +555,9 @@ def analyze_stocks(models, conn, pool):
                 'close': round(close_val, 2),
                 'pct_chg': pct_val,
                 'date': str(latest['date']),
-                'advice': '买入' if final_score >= 58 else ('卖出' if final_score < 35 else '持有'),
-                'buy_signal': final_score >= 58,
-                'sell_signal': final_score < 35,
+                'advice': '买入' if final_score >= 60 else ('卖出' if final_score < 40 else '持有'),
+                'buy_signal': final_score >= 60,
+                'sell_signal': final_score < 40,
                 'volume': float(latest['volume']) if pd.notna(latest.get('volume')) else 0,
                 'feature_count': len(feat),
                 'alpha158_count': sum(1 for k in feat if k.startswith('a158_')),

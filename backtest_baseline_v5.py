@@ -22,7 +22,7 @@ print(f"股票池: {len(stock_pool)}只")
 # 获取所有股票日期交集范围
 date_ranges = []
 for code in stock_pool:
-    r = conn.execute(f"SELECT MIN(date), MAX(date) FROM daily_price WHERE code='{code}'").fetchone()
+    r = conn.execute("SELECT MIN(date), MAX(date) FROM daily_price WHERE code=?", (code,)).fetchone()
     if r[0]: date_ranges.append((code, r[0], r[1]))
 start_date = pd.Timestamp(max(d[1] for d in date_ranges))
 end_date = pd.Timestamp(min(d[2] for d in date_ranges))
@@ -64,7 +64,7 @@ while window_end + pd.DateOffset(months=3) <= end_date:
     for code in stock_pool:
         if code not in models['xgb']:
             continue
-        df = pd.read_sql(f"SELECT * FROM daily_price WHERE code='{code}' ORDER BY date", conn)
+        df = pd.read_sql("SELECT * FROM daily_price WHERE code=? ORDER BY date", conn, params=(code,))
         if len(df) < 60:
             continue
         

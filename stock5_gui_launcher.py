@@ -12,11 +12,15 @@ import time
 from pathlib import Path
 import socket
 import psutil
+import os
 
 PROJECT_DIR = Path(__file__).parent.absolute()
 FACTOR_RUNNER = r"E:\stock5\llm_factors\factor_runner.py"
 FACTOR_PID_FILE = PROJECT_DIR / "factor_collection.pid"
 FACTOR_LOG = PROJECT_DIR / "logs" / "factor_collection.log"
+EM_FETCHER = PROJECT_DIR / "em_fetcher_daemon.py"
+EM_PID_FILE = PROJECT_DIR / "em_fetcher.pid"
+EM_LOG = PROJECT_DIR / "logs" / "em_fetcher.log"
 
 class ModernButton(tk.Canvas):
     """现代化按钮（带圆角和渐变效果）"""
@@ -76,6 +80,10 @@ class Stock5LauncherGUI:
         self.watchdog_enabled = True
         self.watchdog_notified = {}  # 服务名 -> 是否已发送过"挂了"通知，避免刷屏
         self.startup_done = False    # 首次启动是否完成
+        
+        # EM 东方财富采集器状态
+        self.em_pid = None
+        self.em_running = False
         
         self.root.configure(bg=self.colors['bg_main'])
         self.setup_styles()
@@ -158,6 +166,21 @@ class Stock5LauncherGUI:
                                          fg=self.colors['text_secondary'], font=("微软雅黑", 9))
         self.factor_pid_label.pack(side=tk.RIGHT)
         
+        # EM 东方财富采集器
+        em_frame = tk.Frame(status_frame, bg=self.colors['bg_card'])
+        em_frame.pack(fill=tk.X, padx=12, pady=3)
+        tk.Label(em_frame, text="🏛", bg=self.colors['bg_card'], fg=self.colors['accent'],
+                font=("Segoe UI Emoji", 12)).pack(side=tk.LEFT)
+        self.em_status_label = tk.Label(em_frame, text="东方财富采集: 检查中...", bg=self.colors['bg_card'],
+                                        fg=self.colors['text_primary'], font=("微软雅黑", 11))
+        self.em_status_label.pack(side=tk.LEFT, padx=(8, 0))
+        self.em_mode_label = tk.Label(em_frame, text="", bg=self.colors['bg_card'],
+                                      fg=self.colors['text_secondary'], font=("微软雅黑", 9))
+        self.em_mode_label.pack(side=tk.LEFT, padx=(4, 0))
+        self.em_pid_label = tk.Label(em_frame, text="PID: N/A", bg=self.colors['bg_card'],
+                                     fg=self.colors['text_secondary'], font=("微软雅黑", 9))
+        self.em_pid_label.pack(side=tk.RIGHT)
+        
         # 看门狗状态
         wd_frame = tk.Frame(main_frame, bg=self.colors['bg_card'])
         wd_frame.pack(fill=tk.X, pady=(0, 10))
@@ -184,6 +207,7 @@ class Stock5LauncherGUI:
         self.refresh_button = ModernButton(btn_container, "🔍 刷新", self.check_status, "#6b7280", "#9ca3af")
         self.refresh_button.pack(side=tk.LEFT, padx=4)
         ModernButton(btn_container, "📊 因子", self.run_factors, "#f59e0b", "#fbbf24").pack(side=tk.LEFT, padx=4)
+        ModernButton(btn_container, "🏛 东财", self.run_em, "#8b5cf6", "#a78bfa").pack(side=tk.LEFT, padx=4)
         ModernButton(btn_container, "🛡 看门狗", self.toggle_watchdog, "#6366f1", "#818cf8").pack(side=tk.LEFT, padx=4)
         
         # 快速访问（紧凑）
@@ -289,6 +313,20 @@ class Stock5LauncherGUI:
                 except:
                     pass
             
+            # EM 东方财富采集器
+            em_pid = None
+            em_running = False
+            em_daemon = False
+            if EM_PID_FILE.exists():
+                try:
+                    em_pid = int(EM_PID_FILE.read_text().strip())
+                    em_running = psutil.pid_exists(em_pid)
+                    if em_running:
+                        cmdline = ' '.join(psutil.Process(em_pid).cmdline() or [])
+                        em_daemon = '--daemon' in cmdline
+                except:
+                    pass
+            
             # ---- 看门狗自动恢复 ----
             if self.watchdog_enabled:
                 if not web_running:
@@ -315,6 +353,15 @@ class Stock5LauncherGUI:
                 else:
                     self.watchdog_notified['factor'] = 'alive'
                 
+                # EM 东方财富采集器
+                if not em_running:
+                    if self.watchdog_notified.get('em') != 'dead':
+                        self.log("⚠ 看门狗: 东方财富采集未运行，正在自动启动...")
+                        self.watchdog_notified['em'] = 'dead'
+                    self._ensure_process('em')
+                else:
+                    self.watchdog_notified['em'] = 'alive'
+                
                 # 更新看门狗标签
                 wd_text = "🛡 看门狗状态: 启用"
                 wd_color = self.colors['success']
@@ -337,7 +384,10 @@ class Stock5LauncherGUI:
             
             try:
                 import sqlite3
-                conn = sqlite3.connect(str(PROJECT_DIR / "stocks.db"))
+                db_path = str(PROJECT_DIR / "stocks.db")
+                if not os.path.exists(db_path):
+                    db_path = r"E:\stock5\stocks.db"
+                conn = sqlite3.connect(db_path)
                 count = conn.execute("SELECT COUNT(*) FROM minute_5_price").fetchone()[0]
                 conn.close()
                 self.db_status_label.config(text=f"数据库: {count} 条记录 ✓")
@@ -349,6 +399,14 @@ class Stock5LauncherGUI:
             self.factor_status_label.config(text=f"因子采集: {factor_status_text}", fg=factor_color)
             self.factor_mode_label.config(text="[定时循环]" if is_daemon else "[一次运行]" if factor_running else "")
             self.factor_pid_label.config(text=f"PID: {factor_pid or 'N/A'}")
+            
+            # EM 东方财富采集器 UI
+            em_status_text = "运行中 ✓" if em_running else "未运行 ❌"
+            em_color = self.colors['success'] if em_running else self.colors['danger']
+            self.em_status_label.config(text=f"东方财富采集: {em_status_text}", fg=em_color)
+            self.em_mode_label.config(text="[定时循环]" if em_daemon else "[一次运行]" if em_running else "")
+            self.em_pid_label.config(text=f"PID: {em_pid or 'N/A'}")
+            self.em_running = em_running
         except Exception as e:
             self.log(f"❌ 状态检查失败: {e}")
     
@@ -357,12 +415,20 @@ class Stock5LauncherGUI:
         if name == 'web' or name == 'collect':
             subprocess.Popen(
                 [sys.executable, str(PROJECT_DIR / "stock5_launcher.py"), "--start"],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                 creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
             )
         elif name == 'factor':
             # 因子采集 — 启动守护进程（完全独立，不挂 PIPE）
             subprocess.Popen(
                 [sys.executable, FACTOR_RUNNER, "--daemon"],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
+            )
+        elif name == 'em':
+            # 东方财富采集器 — 守护进程模式
+            subprocess.Popen(
+                [sys.executable, str(EM_FETCHER), "--daemon"],
                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                 creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
             )
@@ -381,6 +447,7 @@ class Stock5LauncherGUI:
         def start_thread():
             try:
                 subprocess.Popen([sys.executable, str(PROJECT_DIR / "stock5_launcher.py"), "--start"],
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                                 creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
                 self.log("✓ 服务启动完成")
                 time.sleep(5)
@@ -394,6 +461,7 @@ class Stock5LauncherGUI:
         def stop_thread():
             try:
                 subprocess.Popen([sys.executable, str(PROJECT_DIR / "stock5_launcher.py"), "--stop"],
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                                 creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
                 self.log("✓ 服务已停止")
                 time.sleep(3)
@@ -407,6 +475,7 @@ class Stock5LauncherGUI:
         def restart_thread():
             try:
                 subprocess.Popen([sys.executable, str(PROJECT_DIR / "stock5_launcher.py"), "--restart"],
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                                 creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
                 self.log("✓ 服务重启完成")
                 time.sleep(5)
@@ -447,6 +516,30 @@ class Stock5LauncherGUI:
                 self.log(f"❌ 因子采集启动失败: {e}")
         threading.Thread(target=factor_thread, daemon=True).start()
     
+    def run_em(self):
+        """启动东方财富采集器守护进程"""
+        if self.em_running:
+            self.log("⚠ 东方财富采集已在运行")
+            return
+        
+        self.log("🏛 正在启动东方财富采集守护进程...")
+        def em_thread():
+            try:
+                proc = subprocess.Popen(
+                    [sys.executable, str(EM_FETCHER), "--daemon"],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                    creationflags=subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.DETACHED_PROCESS
+                )
+                time.sleep(1)
+                self.log(f"🏛 东方财富采集已启动 (PID: {proc.pid})")
+                self.log(f"   日志: {EM_LOG}")
+                self.log(f"   模式: 交易日 09:00-15:00 每小时整点采集基本面+市���面数据")
+                time.sleep(2)
+                self.check_status()
+            except Exception as e:
+                self.log(f"❌ 东方财富采集启动失败: {e}")
+        threading.Thread(target=em_thread, daemon=True).start()
+    
     def stop_factor(self):
         """停止因子采集进程"""
         self.log("🛑 正在停止因子采集...")
@@ -483,7 +576,7 @@ class Stock5LauncherGUI:
         
         ttk.Label(log_window, text="选择日志文件:").pack(pady=5)
         
-        log_combo = ttk.Combobox(log_window, values=["web_server.log", "collection.log", "factor_collection.log"])
+        log_combo = ttk.Combobox(log_window, values=["web_server.log", "collection.log", "factor_collection.log", "em_fetcher.log"])
         log_combo.set("web_server.log")
         log_combo.pack(pady=5)
         
@@ -651,8 +744,10 @@ class Stock5LauncherGUI:
                 import subprocess, json
                 result = subprocess.run(
                     [sys.executable, str(PROJECT_DIR / "check_data_integrity.py")],
-                    capture_output=True, text=True, timeout=60
+                    capture_output=True, text=True, timeout=60, encoding='utf-8'
                 )
+                if not result.stdout:
+                    raise ValueError(f"校验脚本无输出，stderr: {result.stderr[:500] if result.stderr else '无'}")
                 report = json.loads(result.stdout)
                 s = report['summary']
                 self.log(f"✅ 校验完成: {s['passed']}通过/{s['warnings']}警告/{s['errors']}错误")

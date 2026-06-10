@@ -17,7 +17,6 @@ GUI 通过 FACTOR_RUNNER 引用此文件，使用 --daemon 模式启动。
 """
 
 import sys, os, json, sqlite3, time, re, logging, signal
-from logging.handlers import TimedRotatingFileHandler
 import pandas as pd
 import numpy as np
 import requests
@@ -40,13 +39,13 @@ LLM_URL = 'http://127.0.0.1:1234/v1/chat/completions'
 LLM_MODEL = 'fine-r1-7b-i1'
 BATCH_SIZE = 10
 
-# 日志（带日志轮转：每天切割，保留30天）
+# 日志
 logger = logging.getLogger('factor_runner')
 _handler = logging.StreamHandler(sys.stdout)
 _handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
 logger.addHandler(_handler)
 logger.setLevel(logging.INFO)
-_file_handler = TimedRotatingFileHandler(LOG_FILE, when='midnight', interval=1, backupCount=30, encoding='utf-8')
+_file_handler = logging.FileHandler(LOG_FILE, encoding='utf-8')
 _file_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
 logger.addHandler(_file_handler)
 

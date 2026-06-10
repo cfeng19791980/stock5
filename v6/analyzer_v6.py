@@ -1,7 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-analyzer_v5.py — Stock5 分析引擎 (v6 内核)
-基于 Alpha158 因子 + 多模型融合 + 多维度风控
+analyzer_v6.py — Stock5 v6 升级版分析引擎
+与 v5 完全并行，独立输出 result_v6.json
+
+升级点:
+  1. Alpha158 因子集成 (纯 Pandas, 精选 ~60个)
+  2. KDJ 修复 (Phase 0 已跑)
+  3. Bull/Bear 双视角 LLM 因子
+  4. 多维度风控 (大盘+板块+波动率)
+  5. 30只票独立模型 + 融合
+
+用法:
+    python analyzer_v6.py          # 全量运行
 """
 import sys
 sys.stdout.reconfigure(encoding='utf-8')
@@ -19,19 +29,29 @@ warnings.filterwarnings('ignore')
 # 同级目录引用 qlib_alpha158
 import importlib.util
 _v6_dir = os.path.dirname(os.path.abspath(__file__))
-_qlib_path = os.path.join(_v6_dir, "v6", "qlib_alpha158.py")
+_qlib_path = os.path.join(_v6_dir, "qlib_alpha158.py")
 spec = importlib.util.spec_from_file_location("qlib_alpha158", _qlib_path)
 qlib_mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(qlib_mod)
 compute_alpha158 = qlib_mod.compute_selected
 
-DB_PATH = r'E:\stock5\stocks.db'
-CSV_PATH = r'E:\stock5\波段股票Top30.csv'
-OUTPUT_JSON = r'E:\stock5\result_v5.json'
-MODEL_CACHE_DIR = r'E:\stock5\model_cache_v6'
-
-RISE_THRESHOLD = 0.01
-PREDICT_DAYS = 1
+# load central config (fallback to loading file directly)
+try:
+    from config import DB_PATH, CSV_PATH, OUTPUT_JSON, MODEL_CACHE_DIR, N_ESTIMATORS, QUICK_RUN, RISE_THRESHOLD, PREDICT_DAYS
+except Exception:
+    import importlib.util
+    cfg_path = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'config.py'))
+    spec = importlib.util.spec_from_file_location("stock5_config", cfg_path)
+    cfg = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(cfg)
+    DB_PATH = getattr(cfg, 'DB_PATH')
+    CSV_PATH = getattr(cfg, 'CSV_PATH')
+    OUTPUT_JSON = getattr(cfg, 'OUTPUT_JSON', os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'result_v6.json'))
+    MODEL_CACHE_DIR = getattr(cfg, 'MODEL_CACHE_DIR')
+    N_ESTIMATORS = getattr(cfg, 'N_ESTIMATORS', 200)
+    QUICK_RUN = getattr(cfg, 'QUICK_RUN', False)
+    RISE_THRESHOLD = getattr(cfg, 'RISE_THRESHOLD', 0.03)
+    PREDICT_DAYS = getattr(cfg, 'PREDICT_DAYS', 3)
 
 # 特征配置
 ALPHA158_PRIORITY = 'p2'  # p0=25个 p1=55个 p2=80个
@@ -65,40 +85,6 @@ STOCK_NAMES = {
 }
 
 # ==================== 特征提取 ====================
-
-# ==================== 市场环境检测 ====================
-def detect_market_condition(conn):
-    try:
-        df_idx = pd.read_sql("SELECT date, close FROM index_daily WHERE code='000300.SH' ORDER BY date DESC LIMIT 30", conn)
-        if len(df_idx) < 20:
-            return 'normal'
-        df_idx = df_idx.iloc[::-1]
-        df_idx['pct_chg'] = df_idx['close'].pct_change() * 100
-        volatility = df_idx['pct_chg'].tail(20).std()
-        current_price = df_idx['close'].iloc[-1]
-        up_days = (df_idx['pct_chg'].tail(5) > 0).sum()
-        sentiment = up_days / 5
-        print("  市场检测: 波动率={:.2f}%, 大盘={:.0f}, 情绪={:.0f}%".format(volatility, current_price, sentiment*100))
-        if volatility > 3.5 or current_price > 5200:
-            print("  -> 保守模式")
-            return 'conservative'
-        elif volatility > 1.5 and sentiment < 0.4:
-            print("  -> 保守模式")
-            return 'conservative'
-        else:
-            print("  -> 正常模式")
-            return 'normal'
-    except Exception as e:
-        print("  市场检测异常: {}".format(e))
-        return 'normal'
-
-MODEL_PARAMS = {
-    'normal': {'xgb': {'n_estimators': 180, 'max_depth': 2, 'learning_rate': 0.008}, 'lgb': {'n_estimators': 180, 'max_depth': 2, 'learning_rate': 0.008}, 'cat': {'iterations': 250, 'depth': 3, 'learning_rate': 0.008}},
-    'conservative': {'xgb': {'n_estimators': 250, 'max_depth': 2, 'learning_rate': 0.03}, 'lgb': {'n_estimators': 250, 'max_depth': 2, 'learning_rate': 0.03}, 'cat': {'iterations': 280, 'depth': 3, 'learning_rate': 0.03}}
-}
-# 买入阈值
-BUY_THRESHOLDS = {'normal': 54, 'conservative': 65}
-
 def calculate_atr(df, i, window):
     tr_list = []
     for j in range(i - window + 1, i + 1):
@@ -191,65 +177,6 @@ def extract_features_v6(df_reversed, i):
     else:
         feat['pct_chg_5d'] = 0
     feat['momentum'] = feat['pct_chg'] + feat['pct_chg_3d'] + feat['pct_chg_5d']
-    
-    # ---- K线形态特征 (v6.2新增) ----
-    # 需要至少20根K线数据才能稳定识别形态
-    if i >= 20:
-        try:
-            from kline_patterns import add_kline_pattern_features
-            # 取最近20根K线的OHLC数据 (最新在前)
-            lookback = min(i + 1, 30)  # 最多取30根
-            open_prices = df_reversed['open'].iloc[i - lookback + 1:i + 1].tolist()
-            high_prices = df_reversed['high'].iloc[i - lookback + 1:i + 1].tolist()
-            low_prices = df_reversed['low'].iloc[i - lookback + 1:i + 1].tolist()
-            close_prices = df_reversed['close'].iloc[i - lookback + 1:i + 1].tolist()
-            feat = add_kline_pattern_features(feat, open_prices, high_prices, low_prices, close_prices)
-        except Exception:
-            # 形态识别失败时补0
-            for name in ['cdl_hammer', 'cdl_hanging_man', 'cdl_engulfing',
-                         'cdl_morning_star', 'cdl_evening_star', 'cdl_doji',
-                         'cdl_shooting_star', 'cdl_inverted_hammer', 'cdl_piercing',
-                         'cdl_dark_cloud_cover', 'cdl_3_white_soldiers', 'cdl_3_black_crows',
-                         'cdl_rising_3_methods', 'cdl_long_legged_doji', 'cdl_marubozu']:
-                feat[name] = 0
-            feat['cdl_buy_strength'] = 0
-            feat['cdl_sell_strength'] = 0
-            feat['cdl_net_signal'] = 0
-            feat['cdl_strong_reversal'] = 0
-            feat['cdl_doji_present'] = 0
-    else:
-        # 数据不足时补0
-        for name in ['cdl_hammer', 'cdl_hanging_man', 'cdl_engulfing',
-                     'cdl_morning_star', 'cdl_evening_star', 'cdl_doji',
-                     'cdl_shooting_star', 'cdl_inverted_hammer', 'cdl_piercing',
-                     'cdl_dark_cloud_cover', 'cdl_3_white_soldiers', 'cdl_3_black_crows',
-                     'cdl_rising_3_methods', 'cdl_long_legged_doji', 'cdl_marubozu']:
-            feat[name] = 0
-        feat['cdl_buy_strength'] = 0
-        feat['cdl_sell_strength'] = 0
-        feat['cdl_net_signal'] = 0
-        feat['cdl_strong_reversal'] = 0
-        feat['cdl_doji_present'] = 0
-    
-    # ---- Stock7 因子特征 (v7新增) ----
-    # 基于反向因子分析发现的有效因子
-    try:
-        # 取最近60条正序数据（stock7需要正序）
-        lookback = min(i + 1, 60)
-        df_subset = df_reversed.iloc[i - lookback + 1:i + 1].iloc[::-1].reset_index(drop=True)
-        from stock7_trend_predictor import get_stock7_features, get_stock7_risk_multiplier
-        stock7_feat = get_stock7_features(df_subset)
-        stock7_feat['stock7_risk_mult'] = get_stock7_risk_multiplier(df_subset)
-        feat.update(stock7_feat)
-    except Exception:
-        # Stock7 特征不可用时补默认值
-        feat['stock7_score'] = 0.5
-        feat['stock7_risk_mult'] = 1.0
-        for name in ['amplitude', 'boll_ratio', 'kdj_momentum', 'rsi_momentum',
-                     'macd_momentum', 'volume_momentum', 'amount_momentum', 'trend_position']:
-            feat[f'stock7_{name}'] = 0.5
-            feat[f'stock7_{name}_bullish'] = 0.0
-            feat[f'stock7_{name}_bearish'] = 0.0
     
     return feat
 
@@ -384,8 +311,6 @@ def train_models_v6(stock_pool, conn, train_end=None):
     Args:
         train_end: 训练截止日期 (str 'YYYY-MM-DD')，用于回测防止数据泄露
     """
-    market_mode = detect_market_condition(conn)
-    params = MODEL_PARAMS[market_mode]
     print(f"\n训练v6模型 (每只票独立)...{' 训练截止: ' + train_end if train_end else ''}")
     macro, fund = load_macro_factors(conn, date_limit=train_end if train_end else None)
     
@@ -395,7 +320,7 @@ def train_models_v6(stock_pool, conn, train_end=None):
     
     for code in stock_pool:
         try:
-            df = pd.read_sql(f"SELECT * FROM daily_price WHERE code='{code}'{date_filter} ORDER BY date", conn)
+            df = pd.read_sql("SELECT * FROM daily_price WHERE code=? " + date_filter.replace("'", "") + " ORDER BY date", conn, params=(code,))
             if len(df) < 100:
                 continue
             
@@ -448,9 +373,9 @@ def train_models_v6(stock_pool, conn, train_end=None):
             
             # XGBoost (v6.1: 加大正则防过拟合，收紧早停)
             xgb_model = xgb.XGBClassifier(
-                n_estimators= params['xgb']['n_estimators'], max_depth=params['xgb']['max_depth'], random_state=42,
-                learning_rate= params['xgb']['learning_rate'], min_child_weight=8, subsample=0.6,
-                colsample_bytree=0.5, reg_alpha= 0.1, reg_lambda= 1.0,
+                n_estimators=int(N_ESTIMATORS), max_depth=2, random_state=42,
+                learning_rate=0.01, min_child_weight=8, subsample=0.6,
+                colsample_bytree=0.5, reg_alpha=0.5, reg_lambda=3.0,
                 early_stopping_rounds=15, eval_metric='logloss',
                 verbosity=0,
             )
@@ -459,9 +384,9 @@ def train_models_v6(stock_pool, conn, train_end=None):
             
             # LightGBM (v6.1: 更大正则)
             lgb_model = lgb.LGBMClassifier(
-                n_estimators= params['xgb']['n_estimators'], max_depth=params['xgb']['max_depth'], random_state=42,
-                learning_rate= params['xgb']['learning_rate'], min_child_weight=8, subsample=0.6,
-                colsample_bytree=0.5, reg_alpha= 0.1, reg_lambda= 1.0,
+                n_estimators=int(N_ESTIMATORS), max_depth=2, random_state=42,
+                learning_rate=0.01, min_child_weight=8, subsample=0.6,
+                colsample_bytree=0.5, reg_alpha=0.5, reg_lambda=3.0,
                 min_split_gain=0.1,
                 verbose=-1,
             )
@@ -471,9 +396,9 @@ def train_models_v6(stock_pool, conn, train_end=None):
             
             # CatBoost (v6.1: 更大正则)
             cat_model = CatBoostClassifier(
-                iterations= params['cat']['iterations'], depth=params['cat']['depth'], random_state=42,
-                learning_rate= params['cat']['learning_rate'], min_child_samples=8, subsample=0.6,
-                l2_leaf_reg= 3.0, early_stopping_rounds=15,
+                iterations=int(N_ESTIMATORS), depth=2, random_state=42,
+                learning_rate=0.01, min_child_samples=8, subsample=0.6,
+                l2_leaf_reg=5.0, early_stopping_rounds=15,
                 verbose=False,
             )
             cat_model.fit(X_train, y_train, eval_set=(X_val, y_val), verbose=False)
@@ -504,8 +429,7 @@ def predict_fusion_v6(models, code, feat):
         lgb_p = models['lgb'][code].predict_proba(feat_arr)[0][1] if code in models['lgb'] else 0.5
         cat_p = models['cat'][code].predict_proba(feat_arr)[0][1] if code in models['cat'] else 0.5
         
-        score = xgb_p * 0.5 + lgb_p * 0.3 + cat_p * 0.2
-        # 直接输出模型概率，不做人为校准
+        score = xgb_p * 0.4 + lgb_p * 0.35 + cat_p * 0.25
         return int(np.clip(score * 100, 0, 100))
     except Exception as e:
         print(f"    predict error: {e}")
@@ -520,114 +444,37 @@ def risk_check(feat, macro=None, row_date=None):
     """
     risk = 1.0
     
-    # 1. 大盘风控 (权重0.4) - 放宽阈值
+    # 1. 大盘风控 (权重0.4)
     hs300_trend = feat.get('hs300_trend_val', 0)
     zz500_trend = feat.get('zz500_trend_val', 0)
     index_rs = feat.get('index_rs', 0)
     
-    if hs300_trend < -1.0:  # 大盘向下 (从-0.5放宽到-1.0)
-        risk *= 0.7
+    if hs300_trend < -0.5:  # 大盘向下
+        risk *= 0.6
     elif hs300_trend < 0:   # 大盘偏弱
+        risk *= 0.85
+    
+    if index_rs < -3:       # 个股大幅跑输大盘
+        risk *= 0.7
+    
+    # 2. 板块轮动 (权重0.3)
+    sector = feat.get('sector_rotation', 0)
+    if sector < -0.3:
+        risk *= 0.8
+    elif sector < -0.1:
         risk *= 0.9
     
-    if index_rs < -5:       # 个股大幅跑输大盘 (从-3放宽到-5)
-        risk *= 0.8
-    
-    # 2. 板块轮动 (权重0.3) - 放宽阈值
-    sector = feat.get('sector_rotation', 0)
-    if sector < -0.5:
-        risk *= 0.85
-    elif sector < -0.2:
-        risk *= 0.95
-    
-    # 3. 个股波动率风控 (权重0.3) - 放���阈值
+    # 3. 个股波动率风控 (权重0.3)
     volatility = feat.get('volatility_ratio', 1.0)
-    if volatility > 2.5:    # 波动异常放大 (从2.0放宽到2.5)
-        risk *= 0.8
-    elif volatility > 1.8:
-        risk *= 0.95
-    
-    # 4. Stock7 因子风控 (v7新增)
-    stock7_risk = feat.get('stock7_risk_mult', 1.0)
-    risk *= stock7_risk
+    if volatility > 2.0:    # 波动异常放大
+        risk *= 0.75
+    elif volatility > 1.5:
+        risk *= 0.9
     
     return risk
 
 
-# ==================== 分析预测函数 ====================
-def analyze_stocks(models, conn, pool):
-    """分析股票池，返回结果列表。后续升级只改此函数即可"""
-    macro_analysis, fund_analysis = load_macro_factors(conn)
-    results = []
-    for code in pool:
-        if code not in models['xgb']:
-            continue
-        try:
-            df = pd.read_sql(f"SELECT * FROM daily_price WHERE code='{code}' ORDER BY date DESC LIMIT 60", conn)
-            df_alpha = compute_alpha158(df.iloc[::-1], windows=ALPHA158_WINDOWS, priority=ALPHA158_PRIORITY)
-            
-            feat = extract_features_with_alpha158(
-                df.iloc[::-1], len(df) - 1,
-                df_alpha.iloc[-1] if len(df_alpha) > 0 else None
-            )
-            if not feat:
-                continue
-            
-            latest = df.iloc[0]
-            prev = df.iloc[1] if len(df) > 1 else None
-            name = STOCK_NAMES.get(code, code)
-            
-            close_val = float(latest['close'])
-            pct_val = float(latest['pct_chg']) if pd.notna(latest.get('pct_chg')) else 0
-            if pct_val == 0 and prev is not None and prev['close'] > 0:
-                pct_val = round((close_val - float(prev['close'])) / float(prev['close']) * 100, 2)
-            
-            latest_date = str(latest['date'])
-            feat = add_macro_features(feat, latest_date, code, macro_analysis, fund_analysis)
-            
-            # 技术评分
-            tech_score = predict_fusion_v6(models, code, feat)
-            
-            # 风控乘数
-            risk_mult = risk_check(feat)
-            
-            # Bull/Bear LLM 因子 (可选)
-            try:
-                from v6.bull_bear import analyze as bull_bear_analyze
-                indicators_str = f"收盘{close_val:.2f}, 涨幅{pct_val}%, RSI={feat.get('rsi6',50):.0f}"
-                bb = bull_bear_analyze(code, name, indicators_str, "", "normal")
-                if bb['success']:
-                    llm_net = bb['bull']['score'] - bb['bear']['score']
-                    llm_conf = bb['confidence']
-                else:
-                    llm_net, llm_conf = 0, 0
-            except Exception:
-                llm_net, llm_conf = 0, 0
-            
-            llm_factor = (llm_net + 100) / 200 * 100
-            final_score = int(tech_score * risk_mult * 0.9 + llm_factor * 0.1)
-            
-            results.append({
-                'code': code,
-                'name': name,
-                'score': final_score,
-                'tech_score': tech_score,
-                'risk_mult': round(risk_mult, 2),
-                'close': round(close_val, 2),
-                'pct_chg': pct_val,
-                'date': str(latest['date']),
-                'advice': '买入' if final_score >= 58 else ('卖出' if final_score < 35 else '持有'),
-                'buy_signal': final_score >= 58,
-                'sell_signal': final_score < 35,
-                'volume': float(latest['volume']) if pd.notna(latest.get('volume')) else 0,
-                'feature_count': len(feat),
-                'alpha158_count': sum(1 for k in feat if k.startswith('a158_')),
-            })
-        except Exception as e:
-            print(f"  {code}: ✗ {e}")
-            continue
-    return results
-
+# ==================== 主流程 ====================
 def main():
     conn = sqlite3.connect(DB_PATH)
     pool = pd.read_csv(CSV_PATH, encoding='utf-8-sig')['股票代码'].tolist()
@@ -644,12 +491,81 @@ def main():
     
     # 分析
     print("\n分析股票池...")
-    results = analyze_stocks(models, conn, pool)
+    macro_analysis, fund_analysis = load_macro_factors(conn)
+    
+    results = []
+    for code in pool:
+        if code not in models['xgb']:
+            continue
+        try:
+            df = pd.read_sql("SELECT * FROM daily_price WHERE code=? ORDER BY date DESC LIMIT 60", conn, params=(code,))
+            df_alpha = compute_alpha158(df.iloc[::-1], windows=ALPHA158_WINDOWS, priority=ALPHA158_PRIORITY)
+            
+            feat = extract_features_with_alpha158(
+                df.iloc[::-1], len(df) - 1,
+                df_alpha.iloc[-1] if len(df_alpha) > 0 else None
+            )
+            if not feat:
+                continue
+            
+            latest_date = str(df.iloc[0]['date'])
+            feat = add_macro_features(feat, latest_date, code, macro_analysis, fund_analysis)
+            
+            # 技术评分
+            print(f"  {code}: feat keys={len(feat)}, train_feats={models['xgb'][code].get_booster().feature_names[:3]}...")
+            tech_score = predict_fusion_v6(models, code, feat)
+            
+            # 风控乘数
+            risk_mult = risk_check(feat)
+            
+            latest = df.iloc[0]
+            prev = df.iloc[1] if len(df) > 1 else None
+            name = STOCK_NAMES.get(code, code)
+            
+            close_val = float(latest['close'])
+            pct_val = float(latest['pct_chg']) if pd.notna(latest.get('pct_chg')) else 0
+            if pct_val == 0 and prev is not None and prev['close'] > 0:
+                pct_val = round((close_val - float(prev['close'])) / float(prev['close']) * 100, 2)
+
+            # Bull/Bear LLM 因子 (可选)
+            try:
+                from v6.bull_bear import analyze as bull_bear_analyze
+                indicators_str = f"收盘{close_val:.2f}, 涨幅{pct_val}%, RSI={feat.get('rsi6',50):.0f}"
+                bb = bull_bear_analyze(code, name, indicators_str, "", "normal")
+                if bb['success']:
+                    llm_net = bb['bull']['score'] - bb['bear']['score']
+                    llm_verdict = bb['verdict']
+                    llm_conf = bb['confidence']
+                else:
+                    llm_net, llm_verdict, llm_conf = 0, 'hold', 0
+            except Exception:
+                llm_net, llm_verdict, llm_conf = 0, 'hold', 0
+            
+            llm_factor = (llm_net + 100) / 200 * 100  # 映射0-100
+            final_score = int(tech_score * risk_mult * 0.9 + llm_factor * 0.1)
+            
+            results.append({
+                'code': code,
+                'name': name,
+                'score': final_score,
+                'tech_score': tech_score,
+                'risk_mult': round(risk_mult, 2),
+                'close': round(close_val, 2),
+                'pct_chg': pct_val,
+                'date': str(latest['date']),
+                'advice': '买入' if final_score >= 65 else ('卖出' if final_score < 40 else '持有'),
+                'feature_count': len(feat),
+                'alpha158_count': sum(1 for k in feat if k.startswith('a158_')),
+            })
+        except Exception as e:
+            print(f"  {code}: ✗ {e}")
+            continue
+    
     conn.close()
     
     # 输出
     result = {
-        'version': 'v5.6',
+        'version': 'v6.0',
         'timestamp': datetime.now().isoformat(),
         'model': f'Alpha158({ALPHA158_PRIORITY}, w={ALPHA158_WINDOWS})',
         'baseline_features': BASE_FEATURES,
@@ -668,7 +584,7 @@ def main():
         json.dump(result, f, ensure_ascii=False, indent=2)
     
     print(f"\n{'='*60}")
-    print(f"v5.6 分析完成: {len(results)}只股票")
+    print(f"v6 分析完成: {len(results)}只股票")
     print(f"结果: {OUTPUT_JSON}")
     print(f"{'='*60}")
 

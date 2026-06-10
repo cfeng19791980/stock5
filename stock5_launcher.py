@@ -87,7 +87,9 @@ def start_data_collection():
     try:
         proc = subprocess.Popen(
             [sys.executable, "realtime_fetcher.py", "--daemon", "--interval", "5"],
-            cwd=PROJECT_DIR
+            cwd=PROJECT_DIR,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
         )
         
         # 等待PID文件生成

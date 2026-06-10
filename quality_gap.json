@@ -1,0 +1,5 @@
+{
+  "metricName": "buy_accuracy_54",
+  "target": 80,
+  "direction": "higher"
+}

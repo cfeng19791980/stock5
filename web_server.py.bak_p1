@@ -37,7 +37,6 @@ from datetime import datetime, timedelta
 import time
 import socket
 import logging
-from logging.handlers import TimedRotatingFileHandler
 from functools import wraps
 import threading
 import collections
@@ -161,18 +160,8 @@ print(f"端口: {WEB_PORT}")
 print("API: /api/minute_5_data, /api/predict, /api/status")
 print("=" * 70)
 
-# 配置日志（带日志轮转：每天切割，保留30天）
-LOG_DIR = r'E:\stock5\logs'
-os.makedirs(LOG_DIR, exist_ok=True)
-LOG_FILE = os.path.join(LOG_DIR, 'web_server.log')
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s [%(levelname)s] %(message)s',
-    handlers=[
-        TimedRotatingFileHandler(LOG_FILE, when='midnight', interval=1, backupCount=30, encoding='utf-8'),
-        logging.StreamHandler(sys.stdout)
-    ]
-)
+# 配置日志
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 logger = logging.getLogger('web_server')
 
 # ========== 静态文件 ==========
@@ -492,8 +481,6 @@ def api_start_collection():
         cwd=PROJECT_DIR,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        encoding='utf-8',
-        errors='replace',
         creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
     )
     

@@ -1,0 +1,6 @@
+{
+    "python.analysis.extraPaths": [
+        "E:\\stock5",
+        "E:\\stock5\\v6"
+    ]
+}

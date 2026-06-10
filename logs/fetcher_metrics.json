@@ -1,11 +1,11 @@
 {
-  "uptime_seconds": 89451.480499,
-  "fetch_count": 43,
-  "success_count": 43,
+  "uptime_seconds": 11702.751578,
+  "fetch_count": 27,
+  "success_count": 27,
   "failure_count": 0,
   "success_rate_percent": 100.0,
-  "last_success_time": "2026-05-27T15:00:10.476307",
+  "last_success_time": "2026-06-04T14:08:47.986049",
   "last_failure_time": null,
   "consecutive_failures": 0,
-  "total_records_written": 1290
+  "total_records_written": 810
 }

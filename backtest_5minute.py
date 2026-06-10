@@ -48,9 +48,9 @@ def run_backtest():
         
         for idx, row in pending.iterrows():
             code = row['stock_code']
-            # 处理 code 格式不一致
-            code_full = code  # 原格式 '605196.SH'
+            # 统一 code 格式处理：minute_5_price 用无后缀，daily_price 用完整格式
             code_short = code.split('.')[0] if '.' in code else code  # '605196'
+            code_full = code_short + ('.SH' if code_short.startswith(('6','5')) else '.SZ')  # '605196.SH'
             
             predict_time = row['predict_datetime'] or row['predict_date']
             action = row['predict_action']
@@ -69,7 +69,7 @@ def run_backtest():
                     WHERE code = ? AND datetime >= ?
                     ORDER BY datetime ASC
                     LIMIT 3
-                """, (code_short, predict_time))  # 用无后缀格式
+                """, (code_short, predict_time))  # minute_5_price 用无后缀格式
                 
                 rows = cursor.fetchall()
                 
@@ -129,7 +129,7 @@ def run_backtest():
                     WHERE code = ? AND date >= ?
                     ORDER BY date ASC
                     LIMIT 2
-                """, (code_full, date_str[:10]))  # 用完整格式
+                """, (code_full, date_str[:10]))  # daily_price 用完整格式
                 
                 rows = cursor.fetchall()
                 

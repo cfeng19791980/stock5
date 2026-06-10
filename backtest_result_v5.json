@@ -1,0 +1,10 @@
+{
+  "config": {
+    "predict_days": 3,
+    "rise_threshold": 0.03
+  },
+  "total_samples": 1050,
+  "accuracy": 71.33,
+  "buy_accuracy": 91.89,
+  "sell_accuracy": 30.23
+}

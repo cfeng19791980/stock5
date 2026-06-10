@@ -78,9 +78,16 @@ def verify_predictions():
                 else:
                     actual_result = 'down_3pct'
                 
-                # 判断预测是否正确
+                # 判断预测是否正确（匹配 analyzer_v5_minute.py 的实际 action 值）
                 is_correct = False
-                if action == 'buy' and next_pct >= 0:
+                if action == '强烈买入' and next_pct >= 0:
+                    is_correct = True
+                elif action == '反向买入机会' and next_pct >= 0:
+                    is_correct = True
+                elif action == '持有观望' and abs(next_pct) <= 1.5:
+                    is_correct = True
+                # 兼容旧格式
+                elif action == 'buy' and next_pct >= 0:
                     is_correct = True
                 elif action == 'sell' and next_pct <= 0:
                     is_correct = True

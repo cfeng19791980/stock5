@@ -3,7 +3,7 @@
 factor_runner.py — 多因子采集守护进程（三合一）
 功能：
   1. 基本面评分 (fin_score)   — LLM 批量分析财务健康度
-  2. 新闻情感评分 (news_score) — 东方财富公告采集 + LLM 情感分析（含舆情分类）
+  2. 新闻情感评分 (news_score) — 东方财富公告采集 + LLM 情感分析
   3. 资金流向评分 (fund_score) — 东方财富资金流 API
   4. 大盘/板块因子           → macro_factors 表
 
@@ -17,7 +17,6 @@ GUI 通过 FACTOR_RUNNER 引用此文件，使用 --daemon 模式启动。
 """
 
 import sys, os, json, sqlite3, time, re, logging, signal
-from logging.handlers import TimedRotatingFileHandler
 import pandas as pd
 import numpy as np
 import requests
@@ -40,13 +39,13 @@ LLM_URL = 'http://127.0.0.1:1234/v1/chat/completions'
 LLM_MODEL = 'fine-r1-7b-i1'
 BATCH_SIZE = 10
 
-# 日志（带日志轮转：每天切割，保留30天）
+# 日志
 logger = logging.getLogger('factor_runner')
 _handler = logging.StreamHandler(sys.stdout)
 _handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
 logger.addHandler(_handler)
 logger.setLevel(logging.INFO)
-_file_handler = TimedRotatingFileHandler(LOG_FILE, when='midnight', interval=1, backupCount=30, encoding='utf-8')
+_file_handler = logging.FileHandler(LOG_FILE, encoding='utf-8')
 _file_handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
 logger.addHandler(_file_handler)
 
@@ -107,13 +106,11 @@ def init_db(conn):
         top_sector TEXT, sector_rotation REAL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""")
-    # 兼容旧表：缺少列则加
-    for col in ['news_sentiment', 'event_type', 'event_impact', 'emotion', 'emotion_intensity',
-                'theme', 'theme_relevance', 'expectation', 'growth_signal']:
-        try:
-            cur.execute(f"ALTER TABLE factor_signals ADD COLUMN {col} TEXT DEFAULT ''")
-        except:
-            pass
+    # 兼容旧��：缺少 news_sentiment 列则加
+    try:
+        cur.execute("ALTER TABLE factor_signals ADD COLUMN news_sentiment TEXT")
+    except:
+        pass
     conn.commit()
 
 def get_codes():
@@ -199,7 +196,7 @@ def collect_fundamental(conn, codes_6digit):
     return all_results
 
 # ====================================================================
-# 模块2: 新闻情感 (news_score) — 含舆情分类
+# 模块2: 新闻情感 (news_score)
 # ====================================================================
 
 NEWS_HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", "Referer": "https://quote.eastmoney.com/"}
@@ -216,56 +213,27 @@ def fetch_news(code_6digit):
     except: return []
 
 def analyze_news_llm(code_6digit, name, news_list):
-    """
-    增强版新闻分析：输出情感 + 舆情分类（借鉴 daily_stock_analysis 的5个策略）
-    事件驱动 / 情绪周期 / 热点主题 / 预期重定价 / 基本面成长
-    """
     if not news_list: return None
     news_text = "\n".join(f"- {n['title']}\n  {n['content'][:100]}" for n in news_list)
     try:
         resp = requests.post(LLM_URL, json={
             "model": LLM_MODEL,
             "messages": [
-                {"role": "system", "content": """你是A股量化分析师。分析新闻公告输出JSON:
-{
-  "sentiment": -1~1,           // 整体情感: -1利空 0中性 1利好
-  "confidence": 0-100,         // 分析置信度
-  "reason": "",                // 核心理由(10字内)
-  "event_type": "",            // 事件类型: 业绩预告/合同/重组/回购/分红/无
-  "event_impact": 0-100,       // 事件影响程度: 0无影响 100重大影响
-  "emotion": "",               // 市场情绪: 恐慌/贪婪/中性
-  "emotion_intensity": 0-100,  // 情绪强度: 0平静 100极端
-  "theme": "",                 // 热点主题: AI/半导体/新能源/低空经济/无
-  "theme_relevance": 0-100,    // 主题相关性: 0无关 100核心受益
-  "expectation": "",           // 预期差: 超预期/低于预期/符合预期/无
-  "growth_signal": "",         // 基本面信号: 正面/负面/无
-}"""},
+                {"role": "system", "content": "你是A股量化分析师。分析新闻公告输出JSON: {\"sentiment\":-1~1, \"confidence\":0-100, \"reason\":\"\"}"},
                 {"role": "user", "content": f"股票: {name}({code_6digit})\n最新公告:\n{news_text}\n分析短期影响。"}
-            ], "temperature": 0.05, "max_tokens": 512,
+            ], "temperature": 0.05, "max_tokens": 256,
         }, timeout=30)
         if resp.status_code != 200: return None
         content = resp.json()["choices"][0]["message"]["content"]
         m = re.search(r"\{.*\}", content, re.DOTALL)
         if m:
             r = json.loads(m.group())
-            return {
-                "sentiment": float(r.get("sentiment", 0)),
-                "confidence": int(r.get("confidence", 50)),
-                "reason": r.get("reason", ""),
-                "event_type": r.get("event_type", ""),
-                "event_impact": int(r.get("event_impact", 0)),
-                "emotion": r.get("emotion", "中性"),
-                "emotion_intensity": int(r.get("emotion_intensity", 0)),
-                "theme": r.get("theme", ""),
-                "theme_relevance": int(r.get("theme_relevance", 0)),
-                "expectation": r.get("expectation", ""),
-                "growth_signal": r.get("growth_signal", ""),
-            }
+            return {"sentiment": float(r.get("sentiment",0)), "confidence": int(r.get("confidence",50)), "reason": r.get("reason","")}
     except: return None
     return None
 
 def collect_news(codes_6digit):
-    logger.info("\n=== 新闻情感因子 (含舆情分类) ===")
+    logger.info("\n=== 新闻情感因子 ===")
     results = {}
     for c6 in codes_6digit:
         name = STOCK_NAMES.get(c6, c6)
@@ -275,26 +243,12 @@ def collect_news(codes_6digit):
             logger.info(f"    {len(news)}条公告，LLM分析中...")
             r = analyze_news_llm(c6, name, news)
             if r:
-                results[c6] = {
-                    "sentiment": r['sentiment'],
-                    "news_count": len(news),
-                    "confidence": r['confidence'],
-                    "sentiment_raw": r,
-                    # 舆情分类字段
-                    "event_type": r.get('event_type', ''),
-                    "event_impact": r.get('event_impact', 0),
-                    "emotion": r.get('emotion', '中性'),
-                    "emotion_intensity": r.get('emotion_intensity', 0),
-                    "theme": r.get('theme', ''),
-                    "theme_relevance": r.get('theme_relevance', 0),
-                    "expectation": r.get('expectation', ''),
-                    "growth_signal": r.get('growth_signal', ''),
-                }
-                logger.info(f"    → 情感:{r['sentiment']:+.2f} 事件:{r.get('event_type','无')} 情绪:{r.get('emotion','中性')}")
+                results[c6] = {"sentiment": r['sentiment'], "news_count": len(news), "confidence": r['confidence'], "sentiment_raw": r}
+                logger.info(f"    → 情感:{r['sentiment']:+.2f} 置信度:{r['confidence']}")
             else: logger.info(f"    → LLM跳过")
         else: logger.info(f"    → 无公告")
         time.sleep(0.3)
-    logger.info(f"  [OK] {len(results)}只有新闻数据")
+    logger.info(f"  ✅ {len(results)}只有新闻数据")
     return results
 
 # ====================================================================
@@ -358,67 +312,12 @@ def collect_fund(codes_6digit):
             logger.info(f"  [{c6}] {name}: 主力净流入{d['main_net']:.2f}亿 → 资金分{score}")
         else: logger.info(f"  [{c6}] {name}: 无资金流数据")
         time.sleep(0.1)
-    logger.info(f"  [OK] {len(results)}只含资金数据")
+    logger.info(f"  ✅ {len(results)}只含资金数据")
     return results
 
 # ====================================================================
 # 模块4: 大盘+板块因子 (macro_factors)
 # ====================================================================
-
-def sync_index_daily(conn):
-    """
-    将 daily_price 中的指数/大盘日线（若存在）补入 index_daily。
-    仅在 index_daily 落后于 daily_price 时执行补齐。此函数安全性：
-    - 先删除相同(code,date)的旧记录再插入，避免重复。
-    - 只使用 daily_price 中存在的代码与日期，不依赖外部网络。
-    """
-    try:
-        cur = conn.cursor()
-        pairs = [
-            ('sh.000300', '000300.SH'),
-            ('sh.000905', '000905.SH'),
-        ]
-        inserted = 0
-        for sh_code, alt_code in pairs:
-            # 查询 index_daily 和 daily_price 的最新日期
-            cur.execute("SELECT MAX(date) FROM index_daily WHERE code IN (?,?)", (sh_code, alt_code))
-            idx_max = cur.fetchone()[0]
-            cur.execute("SELECT MAX(date) FROM daily_price WHERE code IN (?,?)", (alt_code, sh_code))
-            dp_max = cur.fetchone()[0]
-            if not dp_max:
-                continue
-            if idx_max and dp_max <= idx_max:
-                continue  # 已经最新
-            # 获取需要补的 daily_price 行（按日期升序）
-            start_date = (idx_max or '1900-01-01')
-            rows = cur.execute(
-                "SELECT date, open, high, low, close, volume, pct_chg, amount, prev_close, code FROM daily_price "
-                "WHERE code IN (?,?) AND date> ? ORDER BY date ASC",
-                (alt_code, sh_code, start_date)
-            ).fetchall()
-            for row in rows:
-                date, open_v, high_v, low_v, close_v, vol, pct, amount, prev_close, src_code = row
-                # 插入两种格式：000300.SH 和 sh.000300
-                for code_variant in (alt_code, sh_code):
-                    try:
-                        # 删除已有相同记录，防止重复
-                        cur.execute("DELETE FROM index_daily WHERE code=? AND date=?", (code_variant, date))
-                        cur.execute(
-                            "INSERT INTO index_daily(code, date, open, high, low, close, volume, pct_chg, amount, prev_close, name) "
-                            "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-                            (code_variant, date, open_v, high_v, low_v, close_v, vol or 0, pct or 0, amount or 0, prev_close or 0, src_code)
-                        )
-                        inserted += 1
-                    except Exception:
-                        # 忽略单行错误，继续
-                        continue
-        if inserted:
-            conn.commit()
-            logger.info(f"  [sync_index_daily] 已从 daily_price 补入 index_daily {inserted} 条")
-        else:
-            logger.info("  [sync_index_daily] index_daily 已是最新，无需补齐")
-    except Exception as e:
-        logger.exception(f"  [sync_index_daily] 同步失败: {e}")
 
 def collect_macro(conn, codes_6digit):
     logger.info("\n=== 大盘因子 ===")
@@ -429,13 +328,13 @@ def collect_macro(conn, codes_6digit):
         return
 
     r300, r500 = df300.iloc[0], df500.iloc[0]
-    d300 = np.asarray(pd.read_sql("SELECT close FROM index_daily WHERE code='sh.000300' ORDER BY date DESC LIMIT 20", conn)['close'], dtype=float)
-    d500 = np.asarray(pd.read_sql("SELECT close FROM index_daily WHERE code='sh.000905' ORDER BY date DESC LIMIT 20", conn)['close'], dtype=float)
+    d300 = pd.read_sql("SELECT close FROM index_daily WHERE code='sh.000300' ORDER BY date DESC LIMIT 20", conn)['close'].values
+    d500 = pd.read_sql("SELECT close FROM index_daily WHERE code='sh.000905' ORDER BY date DESC LIMIT 20", conn)['close'].values
 
-    hs300_ma5 = float(np.mean(d300[:5])) if len(d300)>=5 else float(r300['close'])
-    hs300_ma20 = float(np.mean(d300)) if len(d300)>=20 else float(r300['close'])
-    zz500_ma5 = float(np.mean(d500[:5])) if len(d500)>=5 else float(r500['close'])
-    zz500_ma20 = float(np.mean(d500)) if len(d500)>=20 else float(r500['close'])
+    hs300_ma5 = d300[:5].mean() if len(d300)>=5 else r300['close']
+    hs300_ma20 = d300.mean() if len(d300)>=20 else r300['close']
+    zz500_ma5 = d500[:5].mean() if len(d500)>=5 else r500['close']
+    zz500_ma20 = d500.mean() if len(d500)>=20 else r500['close']
 
     def trend(c, m20):
         if c > m20*1.03: return 'up'
@@ -479,9 +378,9 @@ def collect_macro(conn, codes_6digit):
     sp = {}
     for c6, s in sector_map.items():
         if c6 in today_data: sp.setdefault(s, []).append(today_data[c6])
-    sa = {s: round(float(np.mean(v)),2) for s,v in sp.items() if v}
+    sa = {s: round(np.mean(v),2) for s,v in sp.items() if v}
     if sa:
-        top = max(sa, key=lambda k: sa[k]); worst = min(sa, key=lambda k: sa[k]); rot = round(abs(sa[top]-sa[worst]),2)
+        top = max(sa, key=sa.get); worst = min(sa, key=sa.get); rot = round(abs(sa[top]-sa[worst]),2)
         for s, v in sorted(sa.items(), key=lambda x: -x[1]):
             logger.info(f"  {s}: {v:+.2f}% ({len(sp[s])}只)")
         logger.info(f"  最强: {top} | 最弱: {worst} | 轮动强度: {rot}")
@@ -510,22 +409,16 @@ def save_signals(conn, codes_6digit, today, session, fin=None, news=None, fund=N
         cur.execute("""INSERT OR REPLACE INTO factor_signals
             (code, date, session, news_score, news_count, news_sentiment,
              fin_score, llm_summary, llm_confidence,
-             fund_score, main_net_inflow, main_ratio, created_at,
-             event_type, event_impact, emotion, emotion_intensity,
-             theme, theme_relevance, expectation, growth_signal)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+             fund_score, main_net_inflow, main_ratio, created_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (code_full, today, session,
              round(news_score,1), n.get('news_count',0), sent_json,
              f.get('fin_score',50), f.get('llm_summary',''), f.get('llm_confidence',0),
              fu.get('fund_score',50), fu.get('main_net'), fu.get('main_pct'),
-             datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-             n.get('event_type',''), n.get('event_impact',0),
-             n.get('emotion','中性'), n.get('emotion_intensity',0),
-             n.get('theme',''), n.get('theme_relevance',0),
-             n.get('expectation',''), n.get('growth_signal','')))
+             datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
         written += 1
     conn.commit()
-    logger.info(f"\n  [OK] {written}/{len(codes_6digit)} 只已写入 factor_signals (含舆情分类)")
+    logger.info(f"\n  ✅ {written}/{len(codes_6digit)} 只已写入 factor_signals")
 
 # ====================================================================
 # 主流程
@@ -544,7 +437,6 @@ def run_once(quick=False):
     today = datetime.now().strftime('%Y-%m-%d')
     session = 'afternoon'
 
-    sync_index_daily(conn)
     collect_macro(conn, codes)
 
     if quick:
@@ -557,7 +449,7 @@ def run_once(quick=False):
         save_signals(conn, codes, today, session, fin=fin, news=news, fund=fund)
 
     conn.close()
-    logger.info(f"\n  [OK] 采集完成 | {datetime.now().strftime('%H:%M')}")
+    logger.info(f"\n  ✅ 采集完成 | {datetime.now().strftime('%H:%M')}")
 
 def daemon_loop():
     """守护进程：交易时段每小时运行一次"""
@@ -591,7 +483,7 @@ def daemon_loop():
             logger.debug(f"[非交易时间] {now.strftime('%H:%M')} 跳过")
         elif should_run or (now.minute == 0 and last_run_hour != hour):
             try:
-                run_once(quick=False)  # daemon 模式跑全量（包括 LLM 基本面+新闻，本地 fine 模型免费）
+                run_once(quick=True)  # daemon 模式默认 quick（不调 LLM）
                 last_run_date = now.strftime('%Y-%m-%d')
                 last_run_hour = hour
             except Exception as e:

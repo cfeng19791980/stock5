@@ -3,96 +3,9 @@
 数据校验脚本 — 验证 stock5 数据库的完整性、时效性、一致性
 输出：JSON 格式检查报告（既用于命令行也用于 GUI 展示）
 """
-import json, sqlite3, sys, os, logging
+import json, sqlite3, sys, os
 from datetime import datetime, timedelta
 from pathlib import Path
-
-# ========== 告警配置 ==========
-# 告警方式：Windows 弹窗（MessageBox）
-# 告警冷却（同一类型告警在冷却期内不重复弹窗，单位：秒）
-ALERT_COOLDOWN = int(os.environ.get('STOCK5_ALERT_COOLDOWN', '3600'))
-ALERT_STATE_FILE = Path(os.environ.get('STOCK5_ALERT_STATE', r'E:\stock5\logs\.alert_state.json'))
-
-logger = logging.getLogger(__name__)
-
-def _load_alert_state():
-    """加载告警冷却状态"""
-    try:
-        if ALERT_STATE_FILE.exists():
-            return json.loads(ALERT_STATE_FILE.read_text(encoding='utf-8'))
-    except Exception:
-        pass
-    return {}
-
-def _save_alert_state(state):
-    """保存告警冷却状态"""
-    try:
-        ALERT_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-        ALERT_STATE_FILE.write_text(json.dumps(state, ensure_ascii=False), encoding='utf-8')
-    except Exception as e:
-        logger.warning(f"保存告警状态失败: {e}")
-
-def _should_alert(alert_key):
-    """检查是否应该发送告警（冷却期内不重复）"""
-    state = _load_alert_state()
-    last_sent = state.get(alert_key, 0)
-    return (datetime.now().timestamp() - last_sent) > ALERT_COOLDOWN
-
-def _mark_alerted(alert_key):
-    """标记告警已发送"""
-    state = _load_alert_state()
-    state[alert_key] = datetime.now().timestamp()
-    _save_alert_state(state)
-
-def _send_windows_popup(title, content):
-    """发送 Windows 弹窗告警（使用 ctypes MessageBoxW，无需额外依赖）"""
-    try:
-        import ctypes
-        # MB_ICONWARNING=0x30, MB_OK=0x00, MB_SYSTEMMODAL=0x1000（置顶）
-        ctypes.windll.user32.MessageBoxW(
-            0,                              # hWnd = NULL
-            content,                        # 消息内容
-            title,                          # 标题栏
-            0x30 | 0x1000                   # MB_ICONWARNING | MB_SYSTEMMODAL
-        )
-        return True
-    except Exception as e:
-        logger.warning(f"Windows弹窗发送失败: {e}")
-        # 降级：输出到 stderr
-        print(f"[ALERT] {title}\n{content}", file=sys.stderr)
-        return False
-
-def send_alert(report):
-    """根据校验报告发送 Windows 弹窗告警（仅在有 ERROR 时触发）"""
-    errors = [c for c in report['checks'] if c['status'] == 'ERROR']
-    if not errors:
-        return
-
-    # 生成告警键（基于错误名称集合，避免同类告警刷屏）
-    alert_key = 'errors:' + ','.join(sorted(e['name'] for e in errors))
-    if not _should_alert(alert_key):
-        logger.info("告警冷却中，跳过弹窗")
-        return
-
-    # 构建告警内容（纯文本，适合弹窗显示）
-    ts = report.get('timestamp', datetime.now().isoformat())
-    s = report['summary']
-    title = f"Stock5 数据校验异常 ({s['errors']}项错误)"
-    lines = [f"时间: {ts}", "", "错误:"]
-    for e in errors:
-        lines.append(f"  [X] {e['name']}: {e['detail']}")
-    # 附加警告
-    warns = [c for c in report['checks'] if c['status'] == 'WARN']
-    if warns:
-        lines.append(f"\n警告 ({len(warns)}项):")
-        for w in warns:
-            lines.append(f"  [!] {w['name']}: {w['detail']}")
-    content = '\n'.join(lines)
-
-    # 弹窗
-    if _send_windows_popup(title, content):
-        logger.info("Windows弹窗告警已发送")
-        _mark_alerted(alert_key)
 
 # Paths can be configured via environment variables to avoid hardcoded E:\ paths
 DB_PATH = Path(os.environ.get('STOCK5_DB_PATH', r'E:\stock5\stocks.db'))
@@ -275,5 +188,3 @@ def check():
 if __name__ == '__main__':
     report = check()
     print(json.dumps(report, ensure_ascii=False, indent=2))
-    # 有 ERROR 时弹出 Windows 告警
-    send_alert(report)
