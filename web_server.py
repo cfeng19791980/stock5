@@ -33,7 +33,7 @@ import json
 import subprocess
 import psutil
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, date, timedelta
 import time
 import socket
 import logging
@@ -276,7 +276,7 @@ def api_status():
     # Get latest data timestamp
     latest_timestamp = None
     try:
-        latest_row = conn.execute("SELECT MAX(datetime) FROM minute_5_price").fetchone()
+        latest_row = conn.execute("SELECT MAX(date) FROM minute_5_price").fetchone()
         if latest_row and latest_row[0]:
             latest_timestamp = latest_row[0]
     except Exception:
@@ -313,9 +313,9 @@ def api_minute_5_data():
     limit = request.args.get('limit', 50, type=int)
     
     data = conn.execute("""\
-        SELECT code, datetime, close, pct_chg, ma5, ma10, ma20, rsi6, k, d, j, macd\
+        SELECT code, date, close, pct_chg, ma5, ma10, ma20, rsi6, k, d, j, macd\
         FROM minute_5_price\
-        ORDER BY datetime DESC\
+        ORDER BY date DESC\
         LIMIT ?\
     """, (limit,)).fetchall()
     
@@ -327,7 +327,7 @@ def api_minute_5_data():
     for row in data:
         result.append({
             'code': row[0],
-            'datetime': row[1],
+            'date': row[1],
             'close': row[2],
             'pct_chg': row[3],
             'ma5': row[4],
@@ -362,7 +362,7 @@ def api_predict():
             
             codes = conn.execute("""
                 SELECT DISTINCT code FROM minute_5_price
-                ORDER BY datetime DESC
+                ORDER BY date DESC
                 LIMIT 30
             """).fetchall()
             
@@ -449,7 +449,7 @@ def api_predict_stream():
             
             codes = conn.execute("""
                 SELECT DISTINCT code FROM minute_5_price
-                ORDER BY datetime DESC
+                ORDER BY date DESC
                 LIMIT 30
             """).fetchall()
             
@@ -544,6 +544,82 @@ def api_stop_collection():
             'success': True,
             'message': '数据采集已停止（PID不存在）'
         })
+
+@app.route('/api/kline/<code>')
+def api_kline(code):
+    """获取K线数据：优先查 daily_price（个股），回退到 index_daily（指数）"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        
+        # 处理代码格式
+        code = code.strip().upper()
+        
+        # 标准化为不带后缀的纯数字代码
+        code_num = code.replace('.SH', '').replace('.SZ', '')
+        
+        # 准备多种格式的查询
+        code_sh = code_num + '.SH'
+        code_sz = code_num + '.SZ'
+        code_sh_lower = 'sh.' + code_num
+        code_sz_lower = 'sz.' + code_num
+        
+        # 先查个股 daily_price
+        data = conn.execute("""SELECT date,open,high,low,close,volume FROM daily_price 
+            WHERE code IN (?, ?) ORDER BY date DESC LIMIT 60""", 
+            (code_sh, code_sz)).fetchall()
+        
+        source = 'stock'
+        if not data:
+            # 尝试指数 index_daily - 支持多种格式: sh.000001, 000001.SH, 000001.SZ
+            data = conn.execute("""SELECT date,open,high,low,close,volume FROM index_daily 
+                WHERE code IN (?, ?, ?, ?, ?) ORDER BY date DESC LIMIT 60""", 
+                (code_sh, code_sz, code_sh_lower, code_sz_lower, code_num + '.SH')).fetchall()
+            source = 'index'
+        
+        conn.close()
+        kline = []
+        for row in reversed(data):
+            kline.append({'date':row[0][:10] if row[0] else '','open':float(row[1]) if row[1] else 0,'high':float(row[2]) if row[2] else 0,'low':float(row[3]) if row[3] else 0,'close':float(row[4]) if row[4] else 0,'volume':float(row[5]) if row[5] else 0})
+        return jsonify({'code':code,'kline':kline,'source':source})
+    except Exception as e:
+        return jsonify({'error':str(e)}),500
+@app.route('/api/market_index')
+def api_market_index():
+    """获取大盘指数K线（默认沪深300 000300.SH，支持 ?code=000905.SH）"""
+    try:
+        code = request.args.get('code', '000300.SH')
+        name_map = {'000300.SH': '沪深300', '000905.SH': '中证500'}
+        name = name_map.get(code, code)
+        
+        conn = sqlite3.connect(DB_PATH)
+        
+        data = conn.execute("""
+            SELECT date, open, high, low, close, volume
+            FROM index_daily
+            WHERE code = ?
+            ORDER BY date DESC
+            LIMIT 60
+        """, (code,)).fetchall()
+        
+        conn.close()
+        
+        if not data:
+            return jsonify({'code': code, 'name': name, 'kline': []})
+        
+        kline = []
+        for row in reversed(data):
+            kline.append({
+                'date': row[0][:10] if row[0] else '',
+                'open': float(row[1]) if row[1] else 0,
+                'high': float(row[2]) if row[2] else 0,
+                'low': float(row[3]) if row[3] else 0,
+                'close': float(row[4]) if row[4] else 0,
+                'volume': float(row[5]) if row[5] else 0
+            })
+        
+        return jsonify({'code': code, 'name': name, 'kline': kline})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # ========== 主程序 ==========
 

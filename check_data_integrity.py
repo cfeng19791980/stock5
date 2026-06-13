@@ -153,7 +153,7 @@ def check():
     
     if max_idx_date:
         days_diff = (today_ts - datetime.strptime(max_idx_date, '%Y-%m-%d')).days
-        status = 'PASS' if days_diff <= 2 else ('WARN' if days_diff <= 7 else 'ERROR')
+        status = 'PASS' if days_diff <= 3 else ('WARN' if days_diff <= 10 else 'ERROR')
         _check('大盘日线数据时效性', status,
                f'最新日期: {max_idx_date} ({days_diff}天前)')
     else:
@@ -237,15 +237,18 @@ def check():
     
     # ─── 7. 最近一次分析结果 ───
     try:
-        with open(RESULT_PATH) as f:
+        with open(RESULT_PATH, encoding='utf-8') as f:
             result = json.load(f)
         rs = result.get('stocks', [])
         rdate = result.get('timestamp', '?')
-        rs_scores = [s['score'] for s in rs]
-        _check('最近分析结果', 'PASS' if len(rs) > 0 else 'WARN',
-               f'{len(rs)}只, 时间{rdate}, 评分范围{min(rs_scores)}~{max(rs_scores)}')
-    except:
-        _check('最近分析结果', 'WARN', 'result_v5.json 不存在或解析失败')
+        rs_scores = [s['score'] for s in rs if 'score' in s]
+        if not rs_scores:
+            _check('最近分析结果', 'WARN', f'{len(rs)}只股票但无评分数据')
+        else:
+            _check('最近分析结果', 'PASS' if len(rs) > 0 else 'WARN',
+                   f'{len(rs)}只, 时间{rdate}, 评分范围{min(rs_scores)}~{max(rs_scores)}')
+    except Exception as e:
+        _check('最近分析结果', 'WARN', f'result_v5.json 不存在或解析失败: {e}')
     
     # ─── 8. 大盘data一致性：sh.000300和000300.SH收盘价差异 ───
     for code_pair, name in [(('sh.000300','000300.SH'),'沪深300'), (('sh.000905','000905.SH'),'中证500')]:

@@ -17,7 +17,7 @@ RETRAIN_FORCE = getenv("STOCK5_RETRAIN", "0") == "1"
 # Model/training defaults (tunable via env)
 DEFAULT_N = "50" if QUICK_RUN else "200"
 N_ESTIMATORS = int(getenv("STOCK5_N_ESTIMATORS", DEFAULT_N))
-RISE_THRESHOLD = float(getenv("STOCK5_RISE_THRESHOLD", "0.009"))
+RISE_THRESHOLD = float(getenv("STOCK5_RISE_THRESHOLD", "0.02"))
 PREDICT_DAYS = int(getenv("STOCK5_PREDICT_DAYS", "1"))
 
 # Misc

@@ -365,60 +365,91 @@ def collect_fund(codes_6digit):
 # 模块4: 大盘+板块因子 (macro_factors)
 # ====================================================================
 
+def _fetch_index_kline(secid: str, days: int = 120):
+    """从东方财富拉取指数日K线，带重试"""
+    url = (
+        'https://push2his.eastmoney.com/api/qt/stock/kline/get'
+        f'?secid={secid}'
+        '&fields1=f1,f2,f3,f4,f5,f6'
+        '&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61'
+        f'&klt=101&fqt=1&end=20500101&lmt={days}'
+    )
+    sess = requests.Session()
+    sess.headers.update({
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',  # noqa
+        'Referer': 'https://quote.eastmoney.com/', 'Accept': 'application/json, */*',
+    })
+    for attempt in range(3):
+        try:
+            resp = sess.get(url, timeout=20)
+            data = resp.json()
+            if data.get('data') and data['data'].get('klines'):
+                return data['data']['klines']
+            logger.warning(f"  指数K线 {secid} 第{attempt+1}次返回空数据")
+        except Exception as e:
+            logger.warning(f"  指数K线 {secid} 第{attempt+1}次失败: {e}")
+            time.sleep(2)
+    return None
+
 def sync_index_daily(conn):
-    """
-    将 daily_price 中的指数/大盘日线（若存在）补入 index_daily。
-    仅在 index_daily 落后于 daily_price 时执行补齐。此函数安全性：
-    - 先删除相同(code,date)的旧记录再插入，避免重复。
-    - 只使用 daily_price 中存在的代码与日期，不依赖外部网络。
-    """
-    try:
-        cur = conn.cursor()
-        pairs = [
-            ('sh.000300', '000300.SH'),
-            ('sh.000905', '000905.SH'),
-        ]
+    """从东方财富API采集指数日线写入 index_daily（增量更新）"""
+    idx_config = [
+        ('1.000300', '000300.SH', 'sh.000300', '沪深300'),
+        ('1.000905', '000905.SH', 'sh.000905', '中证500'),
+    ]
+    cur = conn.cursor()
+    inserted_total = 0
+
+    for secid, code_sh, code_alt, name in idx_config:
+        cur.execute("SELECT MAX(date) FROM index_daily WHERE code IN (?,?)", (code_sh, code_alt))
+        max_date = cur.fetchone()[0]
+        today = datetime.now()
+        if max_date:
+            try:
+                days_behind = (today - datetime.strptime(max_date, '%Y-%m-%d')).days
+                if days_behind <= 1:
+                    logger.info(f"  [sync_index_daily] {name} 已最新 ({max_date})，跳过")
+                    continue
+            except Exception:
+                pass
+
+        logger.info(f"  [sync_index_daily] 拉取 {name} K线...")
+        klines = _fetch_index_kline(secid, days=120)
+        if not klines:
+            logger.warning(f"  [sync_index_daily] {name} 拉取失败，跳过")
+            continue
+
         inserted = 0
-        for sh_code, alt_code in pairs:
-            # 查询 index_daily 和 daily_price 的最新日期
-            cur.execute("SELECT MAX(date) FROM index_daily WHERE code IN (?,?)", (sh_code, alt_code))
-            idx_max = cur.fetchone()[0]
-            cur.execute("SELECT MAX(date) FROM daily_price WHERE code IN (?,?)", (alt_code, sh_code))
-            dp_max = cur.fetchone()[0]
-            if not dp_max:
+        for line in klines:
+            parts = line.split(',')
+            if len(parts) < 11:
                 continue
-            if idx_max and dp_max <= idx_max:
-                continue  # 已经最新
-            # 获取需要补的 daily_price 行（按日期升序）
-            start_date = (idx_max or '1900-01-01')
-            rows = cur.execute(
-                "SELECT date, open, high, low, close, volume, pct_chg, amount, prev_close, code FROM daily_price "
-                "WHERE code IN (?,?) AND date> ? ORDER BY date ASC",
-                (alt_code, sh_code, start_date)
-            ).fetchall()
-            for row in rows:
-                date, open_v, high_v, low_v, close_v, vol, pct, amount, prev_close, src_code = row
-                # 插入两种格式：000300.SH 和 sh.000300
-                for code_variant in (alt_code, sh_code):
-                    try:
-                        # 删除已有相同记录，防止重复
-                        cur.execute("DELETE FROM index_daily WHERE code=? AND date=?", (code_variant, date))
-                        cur.execute(
-                            "INSERT INTO index_daily(code, date, open, high, low, close, volume, pct_chg, amount, prev_close, name) "
-                            "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-                            (code_variant, date, open_v, high_v, low_v, close_v, vol or 0, pct or 0, amount or 0, prev_close or 0, src_code)
-                        )
-                        inserted += 1
-                    except Exception:
-                        # 忽略单行错误，继续
-                        continue
+            date_str = parts[0]
+            open_v = float(parts[1]); close_v = float(parts[2])
+            high_v = float(parts[3]); low_v = float(parts[4])
+            vol = float(parts[5]); amount = float(parts[6])
+            pct_chg = float(parts[8])
+
+            if cur.execute("SELECT 1 FROM index_daily WHERE code=? AND date=?", (code_sh, date_str)).fetchone():
+                continue
+            for cv in (code_sh, code_alt):
+                try:
+                    cur.execute(
+                        "INSERT INTO index_daily(code,date,open,high,low,close,volume,pct_chg,amount,prev_close,name) "
+                        "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                        (cv, date_str, open_v, high_v, low_v, close_v, vol, pct_chg, amount, 0, name)
+                    )
+                    inserted += 1
+                except Exception:
+                    continue
+        conn.commit()
         if inserted:
-            conn.commit()
-            logger.info(f"  [sync_index_daily] 已从 daily_price 补入 index_daily {inserted} 条")
-        else:
-            logger.info("  [sync_index_daily] index_daily 已是最新，无需补齐")
-    except Exception as e:
-        logger.exception(f"  [sync_index_daily] 同步失败: {e}")
+            logger.info(f"  [sync_index_daily] {name} 新增 {inserted} 条")
+        inserted_total += inserted
+
+    if inserted_total == 0:
+        logger.info("  [sync_index_daily] 指数日线已是最新，无需更新")
+    return inserted_total
 
 def collect_macro(conn, codes_6digit):
     logger.info("\n=== 大盘因子 ===")
@@ -503,7 +534,10 @@ def save_signals(conn, codes_6digit, today, session, fin=None, news=None, fund=N
         code_full = f"{c6}.SH" if c6.startswith(('6','5')) else f"{c6}.SZ"
 
         sentiment = n.get('sentiment', 0)
-        news_score = max(0, min(100, (sentiment+1)*50))
+        # 修复: sentiment转换 - 利空(-1)也保留基本分
+        conf = n.get('confidence', 50)
+        base = (sentiment + 1) * 50  # [-1,0,1] → [0,50,100]
+        news_score = max(15, min(100, base + conf * 0.15))  # 加上confidence权重，避免-1直接变0  # sentiment范围[-1,1]→news_score范围[10,50,100]  # 提升基线，避免-1直接变0
         sent_json = json.dumps(n.get('sentiment_raw',{}), ensure_ascii=False) if n.get('sentiment_raw') else None
 
         if not f and not n and not fu: continue

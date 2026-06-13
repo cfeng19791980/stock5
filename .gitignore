@@ -38,3 +38,32 @@ catboost_info/
 # 备份文件
 *.before_opt
 *_backup*.py
+*.bak_*
+*.bak
+*.backup_*
+backup/
+
+# 日志文件
+logs/*.log.*
+logs/*.log
+
+# 临时输出
+out.txt
+
+# Playwright 测试残留
+.playwright-mcp/
+
+# VSCode 配置
+.vscode/
+
+# ESLint / Prettier
+.eslintrc.json
+.prettierrc
+
+# 截图
+*.png
+*.jpg
+*.jpeg
+
+# LLM 因子备份
+llm_factors/*.bak*

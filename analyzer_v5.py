@@ -446,34 +446,38 @@ def train_models_v6(stock_pool, conn, train_end=None):
             X_val = val_ds[feature_cols].fillna(0)
             y_val = val_ds['target']
             
-            # XGBoost (v6.1: 加大正则防过拟合，收紧早停)
+            # XGBoost (v6.1: 加大正则防过拟合，收紧早停) - GPU加速
             xgb_model = xgb.XGBClassifier(
                 n_estimators= params['xgb']['n_estimators'], max_depth=params['xgb']['max_depth'], random_state=42,
                 learning_rate= params['xgb']['learning_rate'], min_child_weight=8, subsample=0.6,
                 colsample_bytree=0.5, reg_alpha= 0.1, reg_lambda= 1.0,
                 early_stopping_rounds=15, eval_metric='logloss',
                 verbosity=0,
+                tree_method='hist', device='cuda',  # GPU加速
             )
             xgb_model.fit(X_train, y_train, eval_set=[(X_val, y_val)], verbose=False)
             models['xgb'][code] = xgb_model
             
-            # LightGBM (v6.1: 更大正则)
+            # LightGBM (v6.1: 更大正则) - GPU加速
             lgb_model = lgb.LGBMClassifier(
                 n_estimators= params['xgb']['n_estimators'], max_depth=params['xgb']['max_depth'], random_state=42,
                 learning_rate= params['xgb']['learning_rate'], min_child_weight=8, subsample=0.6,
                 colsample_bytree=0.5, reg_alpha= 0.1, reg_lambda= 1.0,
                 min_split_gain=0.1,
+                device='gpu', gpu_use_dp=True,  # GPU加速
                 verbose=-1,
             )
             lgb_model.fit(X_train, y_train, eval_set=[(X_val, y_val)],
                           callbacks=[lgb.early_stopping(15), lgb.log_evaluation(0)])
             models['lgb'][code] = lgb_model
             
-            # CatBoost (v6.1: 更大正则)
+            # CatBoost (v6.1: 更大正则) - GPU加速
             cat_model = CatBoostClassifier(
                 iterations= params['cat']['iterations'], depth=params['cat']['depth'], random_state=42,
-                learning_rate= params['cat']['learning_rate'], min_child_samples=8, subsample=0.6,
+                learning_rate= params['cat']['learning_rate'], min_child_samples=8,
                 l2_leaf_reg= 3.0, early_stopping_rounds=15,
+                bootstrap_type='MVS', subsample=0.6,  # GPU兼容的bootstrap
+                task_type='GPU', devices='0',  # GPU加速
                 verbose=False,
             )
             cat_model.fit(X_train, y_train, eval_set=(X_val, y_val), verbose=False)
@@ -505,7 +509,7 @@ def predict_fusion_v6(models, code, feat):
         cat_p = models['cat'][code].predict_proba(feat_arr)[0][1] if code in models['cat'] else 0.5
         
         score = xgb_p * 0.5 + lgb_p * 0.3 + cat_p * 0.2
-        # 直接输出模型概率，不做人为校准
+        # 返回真实概率（0-100分）
         return int(np.clip(score * 100, 0, 100))
     except Exception as e:
         print(f"    predict error: {e}")

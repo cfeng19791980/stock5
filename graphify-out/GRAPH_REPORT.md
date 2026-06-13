@@ -1,11 +1,11 @@
-# Graph Report - stock5  (2026-05-31)
+# Graph Report - stock5  (2026-06-06)
 
 ## Corpus Check
-- 29 files · ~28,669 words
+- 35 files · ~33,957 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 450 nodes · 560 edges · 33 communities (28 shown, 5 thin omitted)
+- 527 nodes · 664 edges · 38 communities (34 shown, 4 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
@@ -38,15 +38,17 @@
 - [[_COMMUNITY_Community 28|Community 28]]
 - [[_COMMUNITY_Community 30|Community 30]]
 - [[_COMMUNITY_Community 32|Community 32]]
+- [[_COMMUNITY_Community 33|Community 33]]
+- [[_COMMUNITY_Community 34|Community 34]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `Stock5LauncherGUI` - 22 edges
+1. `Stock5LauncherGUI` - 23 edges
 2. `Stock5 - 5分钟流式数据分析系统` - 16 edges
-3. `compute_selected()` - 10 edges
-4. `analyze_stocks()` - 9 edges
-5. `ModernButton` - 9 edges
-6. `get_fusion_score()` - 9 edges
-7. `run_once()` - 9 edges
+3. `analyze_stocks()` - 10 edges
+4. `run_once()` - 10 edges
+5. `compute_selected()` - 10 edges
+6. `ModernButton` - 9 edges
+7. `get_fusion_score()` - 9 edges
 8. `compute_price_features()` - 9 edges
 9. `parameters` - 9 edges
 10. `meta` - 9 edges
@@ -56,14 +58,18 @@
   analyzer_v5.py → v6/bull_bear.py
 - `api_predict()` --calls--> `predict_minute_5()`  [EXTRACTED]
   web_server.py → analyzer_v5_minute.py
-- `main()` --calls--> `analyze()`  [EXTRACTED]
-  v6/analyzer_v6.py → v6/bull_bear.py
+- `test_kline_module()` --calls--> `add_kline_pattern_features()`  [EXTRACTED]
+  test_kline_integration.py → kline_patterns.py
+- `test_with_real_data()` --calls--> `add_kline_pattern_features()`  [EXTRACTED]
+  test_kline_integration.py → kline_patterns.py
+- `extract_features_v6()` --calls--> `add_kline_pattern_features()`  [EXTRACTED]
+  analyzer_v5.py → kline_patterns.py
 
-## Communities (33 total, 5 thin omitted)
+## Communities (38 total, 4 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.05
-Nodes (26): extract_minute_5_features(), predict_minute_5(), predict_minute_5_single(), 预测单只股票的5分钟走势          Args:         code: 股票代码          Returns:         d, 预测多只股票的5分钟走势          Args:         codes: 股票代码列表          Returns:, 从minute_5_price表提取5分钟周期特征          Args:         code: 股票代码         conn: 数据, run_minute_5_analysis(), save_predictions_to_db() (+18 more)
+Nodes (29): extract_minute_5_features(), predict_minute_5(), predict_minute_5_single(), 预测单只股票的5分钟走势          Args:         code: 股票代码          Returns:         d, 预测多只股票的5分钟走势          Args:         codes: 股票代码列表          Returns:, 从minute_5_price表提取5分钟周期特征          Args:         code: 股票代码         conn: 数据, run_minute_5_analysis(), save_predictions_to_db() (+21 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.05
@@ -82,8 +88,8 @@ Cohesion: 0.06
 Nodes (35): 1. 数据采集（单次）, 1. 简化架构, 2. 技术指标适配, 2. 数据采集（后台连续）, 3. 模型分析（单次）, 3. 流式实时分析, 4. 使用启动脚本, code:block1 (stock5/) (+27 more)
 
 ### Community 5 - "Community 5"
-Cohesion: 0.13
-Nodes (15): code_to_tx(), create_session_with_retries(), fetch_realtime(), FetcherMetrics, Save metrics to a JSON file for external monitoring, Decorator for retrying functions with exponential backoff, Create a requests session with retry strategy, 转腾讯格式: 600183 -> sh600183, 002460 -> sz002460 (+7 more)
+Cohesion: 0.10
+Nodes (20): code_to_tx(), create_session_with_retries(), fetch_realtime(), FetcherMetrics, Save metrics to a JSON file for external monitoring, Save metrics to a JSON file for external monitoring, Decorator for retrying functions with exponential backoff, Decorator for retrying functions with exponential backoff (+12 more)
 
 ### Community 6 - "Community 6"
 Cohesion: 0.10
@@ -102,8 +108,8 @@ Cohesion: 0.12
 Nodes (13): ANALYZER, ANALYZER_V5, { app, BrowserWindow, ipcMain }, data, DATA_FETCHER, fs, JSON_FILE, JSON_FILE_V5 (+5 more)
 
 ### Community 10 - "Community 10"
-Cohesion: 0.18
-Nodes (17): analyze_news_llm(), calc_fund_score(), call_llm(), collect_fund(), collect_fundamental(), collect_macro(), collect_news(), daemon_loop() (+9 more)
+Cohesion: 0.14
+Nodes (21): analyze_news_llm(), calc_fund_score(), call_llm(), collect_fund(), collect_fundamental(), collect_macro(), collect_news(), daemon_loop() (+13 more)
 
 ### Community 11 - "Community 11"
 Cohesion: 0.18
@@ -124,6 +130,10 @@ Nodes (9): is_process_running(), main(), read_pid(), show_status(), start_all_se
 ### Community 15 - "Community 15"
 Cohesion: 0.17
 Nodes (18): add_macro_features(), calculate_atr(), extract_features_v6(), extract_features_with_alpha158(), load_macro_factors(), main(), predict_fusion_v6(), v6特征提取：基准特征 + Alpha158 (+10 more)
+
+### Community 16 - "Community 16"
+Cohesion: 0.31
+Nodes (10): check(), _load_alert_state(), _mark_alerted(), 发送 Windows 弹窗告警（使用 ctypes MessageBoxW，无需额外依赖）, 根据校验报告发送 Windows 弹窗告警（仅在有 ERROR 时触发）, _safe_one(), _save_alert_state(), send_alert() (+2 more)
 
 ### Community 17 - "Community 17"
 Cohesion: 0.39
@@ -150,28 +160,36 @@ Cohesion: 0.25
 Nodes (7): accuracy, buy_accuracy, config, predict_days, rise_threshold, sell_accuracy, total_samples
 
 ### Community 30 - "Community 30"
-Cohesion: 0.16
-Nodes (17): add_macro_features(), analyze_stocks(), calculate_atr(), extract_features_v5(), extract_features_v6(), extract_features_with_alpha158(), load_macro_factors(), main() (+9 more)
+Cohesion: 0.09
+Nodes (29): add_macro_features(), analyze_stocks(), calculate_atr(), extract_features_v5(), extract_features_v6(), extract_features_with_alpha158(), load_macro_factors(), main() (+21 more)
+
+### Community 33 - "Community 33"
+Cohesion: 0.17
+Nodes (14): code_to_em(), EMDataSource, fetch_all(), init_db_tables(), is_trading_day(), is_trading_hour(), log_fetch(), 选股器 - 获取个股基本面/技术面综合数据 (+6 more)
+
+### Community 34 - "Community 34"
+Cohesion: 0.12
+Nodes (15): 1. ✅ Sequential Thinking, 2. ✅ Memory Server (知识图谱), 3. ✅ SQLite Explorer, 4. ✅ Desktop Commander 文件操作, 5. ✅ 搜索功能, 6. ✅ 全局规则系统 (.clinerules/), 7. ✅ MCP 服务器生态, 🔧 Bug 修复验证 (+7 more)
 
 ## Knowledge Gaps
-- **157 isolated node(s):** `predict_days`, `rise_threshold`, `total_samples`, `accuracy`, `buy_accuracy` (+152 more)
+- **170 isolated node(s):** `predict_days`, `rise_threshold`, `total_samples`, `accuracy`, `buy_accuracy` (+165 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **5 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **4 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `analyze()` connect `Community 15` to `Community 30`?**
-  _High betweenness centrality (0.007) - this node is a cross-community bridge._
+  _High betweenness centrality (0.008) - this node is a cross-community bridge._
 - **Why does `model_v5` connect `Community 8` to `Community 1`?**
-  _High betweenness centrality (0.007) - this node is a cross-community bridge._
+  _High betweenness centrality (0.005) - this node is a cross-community bridge._
+- **Why does `get_fusion_score()` connect `Community 7` to `Community 30`?**
+  _High betweenness centrality (0.004) - this node is a cross-community bridge._
 - **What connects `v6特征提取：基准特征 + Alpha158`, `训练：每只票独立模型 + Alpha158因子     Args:         train_end: 训练截止日期 (str 'YYYY-MM-DD')，用`, `多维度风控评分 (乘数0.0~1.0)     fine-r1意见: -2%一刀切太粗，增加板块轮动+个股波动率` to the rest of the system?**
-  _209 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _243 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.05426356589147287 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.050241545893719805 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**
   _Cohesion score 0.05405405405405406 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
-  _Cohesion score 0.13333333333333333 - nodes in this community are weakly interconnected._
-- **Should `Community 3` be split into smaller, more focused modules?**
-  _Cohesion score 0.07407407407407407 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.12903225806451613 - nodes in this community are weakly interconnected._
