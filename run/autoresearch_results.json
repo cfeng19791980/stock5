@@ -1,0 +1,328 @@
+{
+  "timestamp": "2026-06-11T20:39:58.724937",
+  "signal_analysis": [
+    {
+      "action": "hold",
+      "accuracy": 0.0,
+      "count": 1485,
+      "avg_return": 0.6611515151515214,
+      "by_actual": {
+        "up_1pct": {
+          "count": 621,
+          "return": 4.766199677938826
+        },
+        "up": {
+          "count": 197,
+          "return": 0.5931472081218258
+        },
+        "down": {
+          "count": 91,
+          "return": -0.6386813186813182
+        },
+        "down_1pct": {
+          "count": 576,
+          "return": -3.535989583333336
+        }
+      }
+    },
+    {
+      "action": "持有观望",
+      "accuracy": 0.2884902840059791,
+      "count": 1338,
+      "avg_return": 0.1973684603886396,
+      "by_actual": {
+        "down_1pct": {
+          "count": 249,
+          "return": -2.6207080321285137
+        },
+        "up_1pct": {
+          "count": 317,
+          "return": 2.6976138801261813
+        },
+        "up": {
+          "count": 247,
+          "return": 0.5879514170040491
+        },
+        "flat": {
+          "count": 386,
+          "return": -0.0022927461139896454
+        },
+        "down": {
+          "count": 139,
+          "return": -0.5960237410071949
+        }
+      }
+    },
+    {
+      "action": "sell",
+      "accuracy": 0.5297079556898288,
+      "count": 993,
+      "avg_return": -0.014511581067475502,
+      "by_actual": {
+        "down_1pct": {
+          "count": 434,
+          "return": -3.955207373271895
+        },
+        "up_1pct": {
+          "count": 359,
+          "return": 4.728328690807798
+        },
+        "up": {
+          "count": 108,
+          "return": 0.5896296296296295
+        },
+        "down": {
+          "count": 92,
+          "return": -0.6413043478260876
+        }
+      }
+    },
+    {
+      "action": "buy",
+      "accuracy": 0.3995726495726496,
+      "count": 468,
+      "avg_return": -0.4066452991452964,
+      "by_actual": {
+        "up_1pct": {
+          "count": 167,
+          "return": 4.384910179640725
+        },
+        "down_1pct": {
+          "count": 257,
+          "return": -3.6276264591439684
+        },
+        "up": {
+          "count": 20,
+          "return": 0.7700000000000001
+        },
+        "down": {
+          "count": 24,
+          "return": -0.23708333333333323
+        }
+      }
+    },
+    {
+      "action": "反向买入机会",
+      "accuracy": 0.31496062992125984,
+      "count": 254,
+      "avg_return": 0.10554173228346418,
+      "by_actual": {
+        "down": {
+          "count": 20,
+          "return": -0.5777349999999999
+        },
+        "down_1pct": {
+          "count": 60,
+          "return": -3.1895400000000014
+        },
+        "up_1pct": {
+          "count": 55,
+          "return": 3.7536672727272724
+        },
+        "up": {
+          "count": 34,
+          "return": 0.6561823529411763
+        },
+        "flat": {
+          "count": 85,
+          "return": 0.011444705882352932
+        }
+      }
+    },
+    {
+      "action": "强烈买入",
+      "accuracy": 0.43258426966292135,
+      "count": 178,
+      "avg_return": 0.37105842696629215,
+      "by_actual": {
+        "up": {
+          "count": 56,
+          "return": 0.5373714285714286
+        },
+        "flat": {
+          "count": 45,
+          "return": -0.011393333333333332
+        },
+        "down": {
+          "count": 35,
+          "return": -0.6053571428571431
+        },
+        "down_1pct": {
+          "count": 21,
+          "return": -1.4672523809523808
+        },
+        "up_1pct": {
+          "count": 21,
+          "return": 4.212766666666667
+        }
+      }
+    }
+  ],
+  "threshold_analysis": [
+    {
+      "bucket": "0-30",
+      "count": 1014,
+      "up_rate": 0.48520710059171596,
+      "down_rate": 0.5128205128205128,
+      "avg_return": 0.40105483234714007,
+      "avg_return_positive": 4.027198373983739,
+      "avg_return_negative": -3.0166896551724136
+    },
+    {
+      "bucket": "30-40",
+      "count": 560,
+      "up_rate": 0.43392857142857144,
+      "down_rate": 0.41785714285714287,
+      "avg_return": -0.30443214285714293,
+      "avg_return_positive": 2.546047272727273,
+      "avg_return_negative": -3.3615637065637065
+    },
+    {
+      "bucket": "40-50",
+      "count": 845,
+      "up_rate": 0.463905325443787,
+      "down_rate": 0.39763313609467454,
+      "avg_return": 0.023427573964496993,
+      "avg_return_positive": 2.3190011600928075,
+      "avg_return_negative": -2.5713732283464568
+    },
+    {
+      "bucket": "50-60",
+      "count": 1204,
+      "up_rate": 0.5357142857142857,
+      "down_rate": 0.35132890365448505,
+      "avg_return": 0.8579883720930233,
+      "avg_return_positive": 3.0946555395683455,
+      "avg_return_negative": -2.408981896551724
+    },
+    {
+      "bucket": "60-70",
+      "count": 825,
+      "up_rate": 0.4024242424242424,
+      "down_rate": 0.43636363636363634,
+      "avg_return": -0.0358488484848485,
+      "avg_return_positive": 2.4494700787401573,
+      "avg_return_negative": -2.281572037914692
+    },
+    {
+      "bucket": "70+",
+      "count": 268,
+      "up_rate": 0.3656716417910448,
+      "down_rate": 0.4664179104477612,
+      "avg_return": -0.46791641791044775,
+      "avg_return_positive": 1.7831862385321098,
+      "avg_return_negative": -2.1901979452054796
+    }
+  ],
+  "stock_analysis": [
+    {
+      "code": "600183.SH",
+      "count": 98,
+      "up_count": 98,
+      "accuracy": 1.0,
+      "avg_return": 6.256122448979592
+    },
+    {
+      "code": "688519.SH",
+      "count": 99,
+      "up_count": 94,
+      "accuracy": 0.9494949494949495,
+      "avg_return": 3.5867676767676766
+    },
+    {
+      "code": "688668.SH",
+      "count": 98,
+      "up_count": 78,
+      "accuracy": 0.7959183673469388,
+      "avg_return": 1.9058163265306123
+    },
+    {
+      "code": "688308.SH",
+      "count": 98,
+      "up_count": 78,
+      "accuracy": 0.7959183673469388,
+      "avg_return": 4.046224489795918
+    },
+    {
+      "code": "002916.SZ",
+      "count": 98,
+      "up_count": 74,
+      "accuracy": 0.7551020408163265,
+      "avg_return": 1.582857142857143
+    },
+    {
+      "code": "688388.SH",
+      "count": 98,
+      "up_count": 69,
+      "accuracy": 0.7040816326530612,
+      "avg_return": 2.800408163265306
+    },
+    {
+      "code": "603986.SH",
+      "count": 98,
+      "up_count": 58,
+      "accuracy": 0.5918367346938775,
+      "avg_return": -0.42469387755102045
+    },
+    {
+      "code": "603876.SH",
+      "count": 98,
+      "up_count": 58,
+      "accuracy": 0.5918367346938775,
+      "avg_return": 0.6210204081632654
+    },
+    {
+      "code": "300476.SZ",
+      "count": 98,
+      "up_count": 58,
+      "accuracy": 0.5918367346938775,
+      "avg_return": 0.41622448979591836
+    },
+    {
+      "code": "688233.SH",
+      "count": 99,
+      "up_count": 55,
+      "accuracy": 0.5555555555555556,
+      "avg_return": -1.4505050505050507
+    },
+    {
+      "code": "002353.SZ",
+      "count": 99,
+      "up_count": 55,
+      "accuracy": 0.5555555555555556,
+      "avg_return": 2.1075757575757574
+    },
+    {
+      "code": "688676.SH",
+      "count": 98,
+      "up_count": 54,
+      "accuracy": 0.5510204081632653,
+      "avg_return": 1.2472448979591835
+    },
+    {
+      "code": "688556.SH",
+      "count": 98,
+      "up_count": 54,
+      "accuracy": 0.5510204081632653,
+      "avg_return": -0.5158163265306123
+    },
+    {
+      "code": "688416.SH",
+      "count": 98,
+      "up_count": 54,
+      "accuracy": 0.5510204081632653,
+      "avg_return": 1.8748979591836736
+    },
+    {
+      "code": "688195.SH",
+      "count": 99,
+      "up_count": 50,
+      "accuracy": 0.5050505050505051,
+      "avg_return": 0.41444444444444445
+    }
+  ],
+  "recommendations": {
+    "best_signal": "hold",
+    "best_stock": "600183.SH"
+  }
+}

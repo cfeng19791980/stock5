@@ -1,0 +1,405 @@
+{
+  "timestamp": "2026-06-21T03:18:31.353854",
+  "total_cash": 1000000,
+  "positions": 0,
+  "recommendations": {
+    "strong_buy": [],
+    "buy": [
+      {
+        "code": "605196.SH",
+        "name": "华通线缆",
+        "score": 63,
+        "price": 31.28,
+        "pct_chg": -4.2,
+        "position_ratio": 0.1,
+        "stop_loss": 29.716,
+        "take_profit": 33.7824,
+        "reasons": [
+          "评���63 >= 60",
+          "建议仓位10%"
+        ]
+      }
+    ],
+    "hold": [
+      {
+        "code": "688676.SH",
+        "name": "金盘科技",
+        "score": 46,
+        "price": 92.5,
+        "pct_chg": -0.27,
+        "position_ratio": 0.05,
+        "stop_loss": 92.5,
+        "take_profit": 99.9,
+        "reasons": [
+          "评分46 在持有区间"
+        ]
+      },
+      {
+        "code": "688388.SH",
+        "name": "嘉元科技",
+        "score": 46,
+        "price": 47.18,
+        "pct_chg": -0.57,
+        "position_ratio": 0.05,
+        "stop_loss": 47.18,
+        "take_profit": 50.9544,
+        "reasons": [
+          "评分46 在持有区间"
+        ]
+      },
+      {
+        "code": "002460.SZ",
+        "name": "赣锋锂业",
+        "score": 46,
+        "price": 69.36,
+        "pct_chg": -2.75,
+        "position_ratio": 0.05,
+        "stop_loss": 69.36,
+        "take_profit": 74.9088,
+        "reasons": [
+          "评分46 在持有区间"
+        ]
+      },
+      {
+        "code": "603876.SH",
+        "name": "鼎胜新材",
+        "score": 45,
+        "price": 25.35,
+        "pct_chg": -2.65,
+        "position_ratio": 0.05,
+        "stop_loss": 25.35,
+        "take_profit": 27.378000000000004,
+        "reasons": [
+          "评分45 在持有区间"
+        ]
+      },
+      {
+        "code": "603225.SH",
+        "name": "新凤鸣",
+        "score": 45,
+        "price": 20.01,
+        "pct_chg": -2.86,
+        "position_ratio": 0.05,
+        "stop_loss": 20.01,
+        "take_profit": 21.610800000000005,
+        "reasons": [
+          "评分45 在持有区间"
+        ]
+      }
+    ],
+    "sell": [
+      {
+        "code": "688658.SH",
+        "name": "悦康药业",
+        "score": 36,
+        "price": 13.18,
+        "pct_chg": -1.05,
+        "position_ratio": 0.0,
+        "stop_loss": 13.18,
+        "take_profit": 14.2344,
+        "reasons": [
+          "评分36 低于买入阈值"
+        ]
+      },
+      {
+        "code": "688195.SH",
+        "name": "腾景科技",
+        "score": 35,
+        "price": 212.54,
+        "pct_chg": 0.82,
+        "position_ratio": 0.0,
+        "stop_loss": 212.54,
+        "take_profit": 229.5432,
+        "reasons": [
+          "评分35 低于买入阈值"
+        ]
+      },
+      {
+        "code": "688698.SH",
+        "name": "伟创电气",
+        "score": 34,
+        "price": 59.73,
+        "pct_chg": 2.45,
+        "position_ratio": 0.0,
+        "stop_loss": 59.73,
+        "take_profit": 64.5084,
+        "reasons": [
+          "评分34 低于买入阈值"
+        ]
+      },
+      {
+        "code": "688416.SH",
+        "name": "恒烁股份",
+        "score": 28,
+        "price": 144.9,
+        "pct_chg": 4.46,
+        "position_ratio": 0.0,
+        "stop_loss": 144.9,
+        "take_profit": 156.49200000000002,
+        "reasons": [
+          "评分28 低于买入阈值"
+        ]
+      },
+      {
+        "code": "688521.SH",
+        "name": "芯原股份",
+        "score": 28,
+        "price": 274.0,
+        "pct_chg": 6.42,
+        "position_ratio": 0.0,
+        "stop_loss": 274.0,
+        "take_profit": 295.92,
+        "reasons": [
+          "评分28 低于买入阈值"
+        ]
+      },
+      {
+        "code": "688668.SH",
+        "name": "鼎通科技",
+        "score": 27,
+        "price": 429.86,
+        "pct_chg": 5.28,
+        "position_ratio": 0.0,
+        "stop_loss": 429.86,
+        "take_profit": 464.2488,
+        "reasons": [
+          "评分27 低于买入阈值"
+        ]
+      },
+      {
+        "code": "688028.SH",
+        "name": "沃尔德",
+        "score": 26,
+        "price": 117.29,
+        "pct_chg": 2.99,
+        "position_ratio": 0.0,
+        "stop_loss": 117.29,
+        "take_profit": 126.67320000000001,
+        "reasons": [
+          "评分26 低于买入阈值"
+        ]
+      },
+      {
+        "code": "603986.SH",
+        "name": "兆易创新",
+        "score": 26,
+        "price": 629.0,
+        "pct_chg": 7.33,
+        "position_ratio": 0.0,
+        "stop_loss": 629.0,
+        "take_profit": 679.32,
+        "reasons": [
+          "评分26 低于买入阈值"
+        ]
+      },
+      {
+        "code": "300476.SZ",
+        "name": "胜宏科技",
+        "score": 26,
+        "price": 369.0,
+        "pct_chg": 2.02,
+        "position_ratio": 0.0,
+        "stop_loss": 369.0,
+        "take_profit": 398.52000000000004,
+        "reasons": [
+          "评分26 低于买入阈值"
+        ]
+      },
+      {
+        "code": "002353.SZ",
+        "name": "杰瑞股份",
+        "score": 25,
+        "price": 164.22,
+        "pct_chg": 4.17,
+        "position_ratio": 0.0,
+        "stop_loss": 164.22,
+        "take_profit": 177.35760000000002,
+        "reasons": [
+          "评分25 低于买入阈值"
+        ]
+      },
+      {
+        "code": "300136.SZ",
+        "name": "信维通信",
+        "score": 25,
+        "price": 107.45,
+        "pct_chg": 1.79,
+        "position_ratio": 0.0,
+        "stop_loss": 107.45,
+        "take_profit": 116.046,
+        "reasons": [
+          "评分25 低于买入阈值"
+        ]
+      },
+      {
+        "code": "688556.SH",
+        "name": "高测股份",
+        "score": 24,
+        "price": 12.2,
+        "pct_chg": 5.81,
+        "position_ratio": 0.0,
+        "stop_loss": 12.2,
+        "take_profit": 13.176,
+        "reasons": [
+          "评分24 低于买入阈值"
+        ]
+      },
+      {
+        "code": "600118.SH",
+        "name": "中国卫星",
+        "score": 24,
+        "price": 76.52,
+        "pct_chg": 0.96,
+        "position_ratio": 0.0,
+        "stop_loss": 76.52,
+        "take_profit": 82.6416,
+        "reasons": [
+          "评分24 低于买入阈值"
+        ]
+      },
+      {
+        "code": "601231.SH",
+        "name": "环旭电子",
+        "score": 24,
+        "price": 37.51,
+        "pct_chg": 1.16,
+        "position_ratio": 0.0,
+        "stop_loss": 37.51,
+        "take_profit": 40.5108,
+        "reasons": [
+          "评分24 低于买入阈值"
+        ]
+      },
+      {
+        "code": "603228.SH",
+        "name": "景旺电子",
+        "score": 24,
+        "price": 81.06,
+        "pct_chg": 0.37,
+        "position_ratio": 0.0,
+        "stop_loss": 81.06,
+        "take_profit": 87.54480000000001,
+        "reasons": [
+          "评分24 低于买入阈值"
+        ]
+      },
+      {
+        "code": "002384.SZ",
+        "name": "东山精密",
+        "score": 23,
+        "price": 273.0,
+        "pct_chg": 6.26,
+        "position_ratio": 0.0,
+        "stop_loss": 273.0,
+        "take_profit": 294.84000000000003,
+        "reasons": [
+          "评分23 低于买入阈值"
+        ]
+      },
+      {
+        "code": "688308.SH",
+        "name": "欧科亿",
+        "score": 22,
+        "price": 188.56,
+        "pct_chg": 8.08,
+        "position_ratio": 0.0,
+        "stop_loss": 188.56,
+        "take_profit": 203.6448,
+        "reasons": [
+          "评分22 低于买入阈值"
+        ]
+      },
+      {
+        "code": "300604.SZ",
+        "name": "长川科技",
+        "score": 22,
+        "price": 264.1,
+        "pct_chg": 0.03,
+        "position_ratio": 0.0,
+        "stop_loss": 264.1,
+        "take_profit": 285.22800000000007,
+        "reasons": [
+          "评分22 低于买入阈值"
+        ]
+      },
+      {
+        "code": "688519.SH",
+        "name": "南亚新材",
+        "score": 21,
+        "price": 397.0,
+        "pct_chg": 0.5,
+        "position_ratio": 0.0,
+        "stop_loss": 397.0,
+        "take_profit": 428.76000000000005,
+        "reasons": [
+          "评分21 低于买入阈值"
+        ]
+      },
+      {
+        "code": "600183.SH",
+        "name": "生益科技",
+        "score": 21,
+        "price": 183.87,
+        "pct_chg": 2.06,
+        "position_ratio": 0.0,
+        "stop_loss": 183.87,
+        "take_profit": 198.57960000000003,
+        "reasons": [
+          "评分21 低于买入阈值"
+        ]
+      },
+      {
+        "code": "688233.SH",
+        "name": "神工股份",
+        "score": 20,
+        "price": 124.37,
+        "pct_chg": 2.19,
+        "position_ratio": 0.0,
+        "stop_loss": 124.37,
+        "take_profit": 134.3196,
+        "reasons": [
+          "评分20 低于买入阈值"
+        ]
+      },
+      {
+        "code": "002916.SZ",
+        "name": "深南电路",
+        "score": 20,
+        "price": 453.8,
+        "pct_chg": 2.15,
+        "position_ratio": 0.0,
+        "stop_loss": 453.8,
+        "take_profit": 490.10400000000004,
+        "reasons": [
+          "评分20 低于买入阈值"
+        ]
+      },
+      {
+        "code": "688788.SH",
+        "name": "科思股份",
+        "score": 18,
+        "price": 42.91,
+        "pct_chg": -4.86,
+        "position_ratio": 0.0,
+        "stop_loss": 42.91,
+        "take_profit": 46.3428,
+        "reasons": [
+          "评分18 低于买入阈值"
+        ]
+      },
+      {
+        "code": "002202.SZ",
+        "name": "金风科技",
+        "score": 18,
+        "price": 22.49,
+        "pct_chg": 2.32,
+        "position_ratio": 0.0,
+        "stop_loss": 22.49,
+        "take_profit": 24.2892,
+        "reasons": [
+          "评分18 低于买入阈值"
+        ]
+      }
+    ]
+  }
+}

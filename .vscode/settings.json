@@ -1,6 +1,35 @@
 {
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true
+  },
+  "eslint.alwaysShowStatus": true,
+  "eslint.format.enable": true,
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
+}
+{
     "python.analysis.extraPaths": [
-        "E:\\stock5",
-        "E:\\stock5\\v6"
-    ]
+        "E:\\vscode\\.venv\\Lib\\site-packages"
+    ],
+    "python.defaultInterpreterPath": "python",
+    "python.analysis.typeCheckingMode": "basic",
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": false,
+    "python.linting.flake8Enabled": true,
+    "python.formatting.provider": "black",
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/*.pyc": true
+    },
+    "debug.console": "integratedTerminal",
+    "debug.inlineValues": true,
+    "editor.formatOnSave": false,
+    "files.associations": {
+        "*.py": "python"
+    }
 }

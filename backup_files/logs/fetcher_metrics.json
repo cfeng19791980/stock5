@@ -1,0 +1,11 @@
+{
+  "uptime_seconds": 1200.025715,
+  "fetch_count": 0,
+  "success_count": 0,
+  "failure_count": 0,
+  "success_rate_percent": 0,
+  "last_success_time": null,
+  "last_failure_time": null,
+  "consecutive_failures": 0,
+  "total_records_written": 0
+}
