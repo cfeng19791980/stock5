@@ -107,10 +107,9 @@ class TakeProfitManager:
         remaining_ratio = 1.0
         
         for level in self.levels:
-            if level.reached and reset:
+            if reset:
                 level.reached = False
-                continue
-                
+
             if pnl_ratio >= level.threshold and not level.reached:
                 # 计算本次卖出的股数
                 exit_ratio = level.exit_ratio

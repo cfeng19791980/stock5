@@ -367,7 +367,7 @@
         /* ===== 交易策略 ===== */
         .strategy-container {
             width: 100%;
-            height: 220px;
+            max-height: 360px;
             overflow-y: auto;
             background: rgba(0,0,0,0.2);
             border-radius: var(--radius-sm);
@@ -879,6 +879,20 @@
     
     <!-- 自选股面板 - 替换原来的导航 -->
     <div class="watchlist-panel">
+        <!-- 账户资金 -->
+        <div class="account-section" style="padding:10px 12px;border-bottom:1px solid var(--border);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <span style="font-size:11px;color:var(--text-muted);"><i class="fas fa-wallet"></i> 账户资金</span>
+                <button class="btn" style="padding:2px 8px;font-size:10px;" onclick="saveAccount()"><i class="fas fa-save"></i> 保存</button>
+            </div>
+            <input type="number" id="totalCashInput" placeholder="总资金(元)" step="1000" min="0"
+                style="width:100%;background:var(--bg-input);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 8px;color:var(--text-primary);font-size:12px;margin-bottom:4px;">
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);">
+                <span id="positionValueDisplay">持仓市值: --</span>
+                <span id="availableCashDisplay">可用资金: --</span>
+            </div>
+        </div>
+        <!-- 自选股列表 -->
         <div class="watchlist-header">
             <h3><i class="fas fa-star"></i> 自选股</h3>
             <span style="font-size:10px;color:var(--text-muted);" id="watchlistCount">0只</span>
@@ -1740,102 +1754,73 @@
     // ===== 交易策略 =====
     async function runStrategy() {
         const container = document.getElementById('strategyContainer');
-        container.innerHTML = '<div class="strategy-loading"><i class="fas fa-spinner fa-spin"></i> 运行策略中...</div>';
-        
+        container.innerHTML = '<div class="strategy-loading"><i class="fas fa-spinner fa-spin"></i> 生成策略中...</div>';
+        // 确保数据已落盘
+        await syncAccountToFile();
+        await syncHoldingsToFile();
+        // 调用后端运行策略引擎
         try {
-            const response = await fetch('/api/run_strategy', {method: 'POST'});
-            if (response.ok) {
-                setTimeout(loadStrategy, 1500);
-            } else {
-                throw new Error('API failed');
+            const result = await (await fetch('/api/run_strategy', {method:'POST'})).json();
+            if (result.success) {
+                renderStrategy(result.data);
+                return;
             }
+        } catch(e) {}
+        // 降级：读本地 strategy_signals.json
+        try {
+            const resp = await fetch('./strategy_signals.json?' + Date.now());
+            const data = await resp.json();
+            renderStrategy(data);
         } catch (e) {
-            // 尝试本地加载
-            try {
-                const resp = await fetch('./strategy_signals.json');
-                const data = await resp.json();
-                renderStrategy(data);
-            } catch (err) {
-                container.innerHTML = '<div class="strategy-loading"><i class="fas fa-exclamation-triangle"></i> 加载失败，请先运行分析模型</div>';
-            }
+            container.innerHTML = '<div class="strategy-loading"><i class="fas fa-exclamation-triangle"></i> 请先启动 web_server.py，然后点击刷新</div>';
         }
     }
 
-    async function loadStrategy() {
-        const container = document.getElementById('strategyContainer');
-        try {
-            const response = await fetch('./strategy_signals.json');
-            const data = await response.json();
-            renderStrategy(data);
-        } catch (e) {
-            container.innerHTML = '<div class="strategy-loading"><i class="fas fa-inbox"></i> 暂无策略信号</div>';
-        }
-    }
+    async function loadStrategy() { runStrategy(); }
 
     function renderStrategy(data) {
         const container = document.getElementById('strategyContainer');
-        const rec = data.recommendations || {};
-        const buy = rec.buy || [];
-        const hold = rec.hold || [];
-        const sell = rec.sell || [];
-        
+        const pf = data.portfolio || {};
+        const holdings = data.holdings || [];
+        const buySignals = data.buy_signals || [];
+        const summary = data.summary || {};
         let html = '';
-        
-        // 统计
+        // 组合概览
         html += '<div class="strategy-stats">';
-        html += `<div class="strategy-stat buy"><div class="strategy-stat-value">${buy.length}</div><div class="strategy-stat-label">买入</div></div>`;
-        html += `<div class="strategy-stat hold"><div class="strategy-stat-value">${hold.length}</div><div class="strategy-stat-label">持有</div></div>`;
-        html += `<div class="strategy-stat sell"><div class="strategy-stat-value">${sell.length}</div><div class="strategy-stat-label">卖出</div></div>`;
+        html += `<div class="strategy-stat"><div class="strategy-stat-value" style="color:var(--primary);">${(pf.total_cash/10000).toFixed(1)}万</div><div class="strategy-stat-label">总资金</div></div>`;
+        html += `<div class="strategy-stat"><div class="strategy-stat-value" style="color:var(--success);">${(pf.position_value/10000).toFixed(1)}万</div><div class="strategy-stat-label">持仓市值</div></div>`;
+        html += `<div class="strategy-stat"><div class="strategy-stat-value" style="color:var(--warning);">${((pf.total_value||0)/10000).toFixed(1)}万</div><div class="strategy-stat-label">总资产</div></div>`;
+        html += `<div class="strategy-stat"><div class="strategy-stat-value">${pf.holding_count||0}</div><div class="strategy-stat-label">持仓数</div></div>`;
         html += '</div>';
-        
+        // 持仓分析
+        if (holdings.length > 0) {
+            html += '<div class="strategy-section"><div class="strategy-section-title"><i class="fas fa-box"></i> 持仓分析</div>';
+            holdings.forEach(h => {
+                var ac = h.action==='sell_all'||h.action==='sell_half'?'var(--danger)':h.action==='add_position'?'var(--success)':h.action==='sell_suggest'?'var(--warning)':'var(--text-muted)';
+                var at = {sell_all:'全部卖出',sell_half:'卖出一半',sell_suggest:'建议卖出',add_position:'建议加仓',hold:'持有'}[h.action]||h.action;
+                var pc = h.pnl_pct>=0?'var(--success)':'var(--danger)';
+                html += '<div class="strategy-item"><span class="code">'+h.code+'</span><span class="name">'+h.name+'</span><span style="font-size:10px;color:'+pc+';margin-right:6px;">'+(h.pnl_pct>=0?'+':'')+h.pnl_pct+'%</span><span class="score" style="background:'+(h.score>=70?'var(--success)':h.score>=50?'var(--warning)':'var(--danger)')+';color:#fff;font-size:11px;padding:2px 6px;border-radius:4px;">'+Math.round(h.score)+'</span><span class="signal-badge" style="background:'+ac+';color:#fff;font-size:10px;">'+at+'</span>'+(h.sell_shares?'<span style="font-size:10px;color:var(--danger);margin-left:4px;">'+h.sell_shares+'股</span>':'')+'</div>';
+            });
+            html += '</div>';
+        }
         // 买入信号
-        if (buy.length > 0) {
-            html += '<div class="strategy-section"><div class="strategy-section-title"><i class="fas fa-arrow-trend-up"></i> 买入信号</div>';
-            buy.forEach(s => {
-                html += `<div class="strategy-item">
-                    <span class="code">${s.code}</span>
-                    <span class="name">${s.name}</span>
-                    <span class="score buy">${Math.round(s.score)}</span>
-                    <span class="signal-badge buy">${(s.position_ratio * 100).toFixed(0)}%</span>
-                    <span class="price">¥${s.price.toFixed(2)}</span>
-                </div>`;
+        if (buySignals.length > 0) {
+            html += '<div class="strategy-section"><div class="strategy-section-title"><i class="fas fa-arrow-trend-up"></i> 买入信号 ('+summary.slots_available+'个空位)</div>';
+            buySignals.forEach(b => {
+                var sc = b.signal==='strong_buy'?'var(--success)':'var(--primary)';
+                html += '<div class="strategy-item"><span class="code">'+b.code+'</span><span class="name">'+b.name+'</span><span class="score" style="background:'+sc+';color:#fff;font-size:11px;padding:2px 6px;border-radius:4px;">'+b.score+'</span><span class="signal-badge" style="background:'+sc+';color:#fff;font-size:10px;">'+(b.signal==='strong_buy'?'强烈买入':'买入')+'</span><span style="font-size:10px;color:var(--text-muted);margin-left:4px;">'+b.suggested_shares+'股 ¥'+(b.suggested_amount/10000).toFixed(1)+'万</span></div>';
             });
             html += '</div>';
         }
-        
-        // 持有信号
-        if (hold.length > 0) {
-            html += '<div class="strategy-section"><div class="strategy-section-title"><i class="fas fa-pause"></i> 持有观望</div>';
-            hold.slice(0, 5).forEach(s => {
-                html += `<div class="strategy-item">
-                    <span class="code">${s.code}</span>
-                    <span class="name">${s.name}</span>
-                    <span class="score hold">${Math.round(s.score)}</span>
-                    <span class="price">¥${s.price.toFixed(2)}</span>
-                </div>`;
-            });
-            if (hold.length > 5) html += `<div style="text-align:center;color:var(--text-muted);font-size:11px;padding:4px;">...还有 ${hold.length - 5} 只</div>`;
-            html += '</div>';
+        // 汇总
+        html += '<div style="display:flex;gap:8px;margin-top:4px;font-size:10px;color:var(--text-muted);">';
+        html += '<span>建议卖出: ¥'+(summary.total_sell_amount/10000).toFixed(2)+'万</span>';
+        html += '<span>建议买入: ¥'+(summary.total_buy_amount/10000).toFixed(2)+'万</span>';
+        html += '<span>阈值: 买入≥'+summary.buy_threshold+' 卖出<'+summary.sell_threshold+'</span>';
+        html += '</div>';
+        if (holdings.length === 0 && buySignals.length === 0) {
+            html = '<div class="strategy-loading"><i class="fas fa-inbox"></i> 暂无持仓和买入信号</div>';
         }
-        
-        // 卖出信号
-        if (sell.length > 0) {
-            html += '<div class="strategy-section"><div class="strategy-section-title"><i class="fas fa-arrow-trend-down"></i> 卖出信号</div>';
-            sell.slice(0, 3).forEach(s => {
-                html += `<div class="strategy-item">
-                    <span class="code">${s.code}</span>
-                    <span class="name">${s.name}</span>
-                    <span class="score sell">${Math.round(s.score)}</span>
-                    <span class="price">¥${s.price.toFixed(2)}</span>
-                </div>`;
-            });
-            html += '</div>';
-        }
-        
-        if (buy.length === 0 && hold.length === 0 && sell.length === 0) {
-            html = '<div class="strategy-loading"><i class="fas fa-inbox"></i> 暂无策略信号</div>';
-        }
-        
         container.innerHTML = html;
     }
 
@@ -2027,6 +2012,75 @@
 
     // ===== 自选股功能 =====
     let watchlist = JSON.parse(localStorage.getItem('stock5_watchlist') || '[]');
+    let account = { total_cash: 100000, available_cash: 100000 };
+
+    // 同步持仓到后端
+    async function syncHoldingsToFile() {
+        const holdings = watchlist.map(item => ({
+            code: item.code,
+            name: item.name || item.code,
+            buyPrice: item.buyPrice || 0,
+            buyQty: item.buyQty || 0,
+            entryDate: new Date(item.addedAt || Date.now()).toISOString().slice(0, 10),
+        }));
+        try { await fetch('/api/save_holdings', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(holdings)}); } catch(e) {}
+    }
+
+    // 同步资金到后端
+    async function syncAccountToFile() {
+        account.total_cash = parseFloat(document.getElementById('totalCashInput').value) || account.total_cash || 100000;
+        account.available_cash = account.total_cash;
+        localStorage.setItem('stock5_account', JSON.stringify(account));
+        try { await fetch('/api/save_account', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(account)}); } catch(e) {}
+    }
+
+    // 初始化账户：localStorage 优先，推送到后端
+    async function initAccount() {
+        const savedCash = localStorage.getItem('stock5_account');
+        if (savedCash) account = JSON.parse(savedCash);
+        try {
+            const r = await fetch('/api/get_account');
+            if (r.ok) {
+                const fa = await r.json();
+                if (fa.total_cash > 0) account.total_cash = fa.total_cash;
+            }
+        } catch(e) {}
+        document.getElementById('totalCashInput').value = account.total_cash || 100000;
+        updateAccountDisplay();
+        renderWatchlist();
+        syncHoldingsToFile();
+        syncAccountToFile();
+    }
+
+    function updateAccountDisplay() {
+        const totalCash = parseFloat(document.getElementById('totalCashInput').value) || 100000;
+        let positionValue = 0;
+        const allData = [...minuteData, ...dailyData];
+        watchlist.forEach(item => {
+            const itemNum = (item.code || '').replace(/[^0-9]/g, '');
+            const stock = allData.find(s => ((s.code || '') + '').replace(/[^0-9]/g, '') === itemNum);
+            if (stock && stock.close) {
+                positionValue += (item.buyQty || 0) * stock.close;
+            }
+        });
+        const availableCash = totalCash - positionValue;
+        document.getElementById('positionValueDisplay').textContent = '持仓市值: ' + positionValue.toLocaleString();
+        document.getElementById('availableCashDisplay').textContent = '可用资金: ' + Math.max(0, availableCash).toLocaleString();
+    }
+
+    async function saveAccount() {
+        await syncAccountToFile();
+        updateAccountDisplay();
+    }
+
+    // 监听资金输入变化
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(initAccount, 500);
+        setTimeout(() => {
+            const cashInput = document.getElementById('totalCashInput');
+            if (cashInput) cashInput.addEventListener('input', updateAccountDisplay);
+        }, 600);
+    });
 
     // Sidebar版本 - 不再使用右侧滑出面板
     function toggleWatchlist() {
@@ -2080,7 +2134,9 @@
         if (!watchlist.find(s => s.code === code)) {
             watchlist.push({ code, name: code.split('.')[0], buyPrice, buyQty, addedAt: Date.now() });
             localStorage.setItem('stock5_watchlist', JSON.stringify(watchlist));
+            syncHoldingsToFile();
             renderWatchlist();
+            updateAccountDisplay();
         }
         input.value = '';
         priceInput.value = '';
@@ -2090,7 +2146,9 @@
     function removeFromWatchlist(code) {
         watchlist = watchlist.filter(s => s.code !== code);
         localStorage.setItem('stock5_watchlist', JSON.stringify(watchlist));
+        syncHoldingsToFile();
         renderWatchlist();
+        updateAccountDisplay();
     }
 
     function renderWatchlist() {

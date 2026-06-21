@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 web_server.py - Stock5 Web服务器
 功能：
@@ -436,6 +436,44 @@ def api_run_predict():
         logger.error(f"run_predict失败: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+# ========== 策略引擎 API ==========
+
+@app.route('/api/save_holdings', methods=['POST'])
+def api_save_holdings():
+    """保存持仓到 holdings.json"""
+    try:
+        holdings = request.json or []
+        filepath = os.path.join(PROJECT_DIR, 'holdings.json')
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(holdings, f, ensure_ascii=False, indent=2)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/get_account', methods=['GET'])
+def api_get_account():
+    """读取账户资金"""
+    try:
+        filepath = os.path.join(PROJECT_DIR, 'account.json')
+        if os.path.exists(filepath):
+            with open(filepath, 'r', encoding='utf-8') as f:
+                return jsonify(json.load(f))
+        return jsonify({'total_cash': 100000})
+    except Exception as e:
+        return jsonify({'total_cash': 100000})
+
+@app.route('/api/save_account', methods=['POST'])
+def api_save_account():
+    """保存账户资金到 account.json"""
+    try:
+        account = request.json or {}
+        filepath = os.path.join(PROJECT_DIR, 'account.json')
+        with open(filepath, 'w', encoding='utf-8') as f:
+            json.dump(account, f, ensure_ascii=False, indent=2)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/predict_stream', methods=['POST'])
 def api_predict_stream():
     """流式预测"""
@@ -549,26 +587,21 @@ def api_stop_collection():
 
 @app.route('/api/run_strategy', methods=['POST'])
 def api_run_strategy():
-    """运行交易策略引擎，生成交易信号"""
+    """运行交易策略引擎，生成买卖建议"""
     try:
-        import sys
-        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-        from strategy.strategy_engine import run_strategy
-        
-        # 运行策略
-        result = run_strategy()
-        
-        return jsonify({
-            'success': True,
-            'message': '策略执行成功',
-            'data': {
-                'buy': len(result.get('recommendations', {}).get('buy', [])),
-                'hold': len(result.get('recommendations', {}).get('hold', [])),
-                'sell': len(result.get('recommendations', {}).get('sell', []))
-            }
-        })
+        import subprocess as sp
+        engine_script = os.path.join(PROJECT_DIR, 'strategy', 'run_engine.py')
+        proc = sp.run(
+            ['python', engine_script],
+            cwd=PROJECT_DIR, capture_output=True,
+            encoding='utf-8', errors='replace', timeout=30
+        )
+        if proc.returncode == 0:
+            data = json.loads(proc.stdout)
+            return jsonify({'success': True, 'data': data})
+        else:
+            return jsonify({'success': False, 'error': proc.stderr[:500]})
     except Exception as e:
-        logger.error(f"run_strategy失败: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/kline/<code>')

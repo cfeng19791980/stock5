@@ -19,6 +19,8 @@ const ANALYZER_V5 = path.join(BASE_DIR, 'analyzer_v5.py');
 const MARKET_FETCHER = path.join(BASE_DIR, 'market_index_fetcher.py');
 const JSON_FILE = path.join(BASE_DIR, 'result.json');
 const JSON_FILE_V5 = path.join(BASE_DIR, 'result_v5.json');
+const HOLDINGS_FILE = path.join(BASE_DIR, 'holdings.json');
+const ACCOUNT_FILE = path.join(BASE_DIR, 'account.json');
 
 // 更新间隔：30分钟
 const UPDATE_INTERVAL = 30 * 60 * 1000;
@@ -53,6 +55,28 @@ function readHoldings() {
 function saveHoldings(holdings) {
   try {
     fs.writeFileSync(HOLDINGS_FILE, JSON.stringify(holdings, null, 2), 'utf8');
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// 读取账户配置（资金量等）
+function readAccount() {
+  try {
+    if (fs.existsSync(ACCOUNT_FILE)) {
+      return JSON.parse(fs.readFileSync(ACCOUNT_FILE, 'utf8'));
+    }
+    return { total_cash: 100000, available_cash: 100000 };
+  } catch (e) {
+    return { total_cash: 100000, available_cash: 100000 };
+  }
+}
+
+// 保存账户配置
+function saveAccount(account) {
+  try {
+    fs.writeFileSync(ACCOUNT_FILE, JSON.stringify(account, null, 2), 'utf8');
     return true;
   } catch (e) {
     return false;
@@ -219,6 +243,36 @@ ipcMain.handle('save-holdings', (event, holdings) => {
 
 ipcMain.handle('get-holdings', () => {
   return readHoldings();
+});
+
+ipcMain.handle('get-account', () => {
+  return readAccount();
+});
+
+ipcMain.handle('save-account', (event, account) => {
+  return saveAccount(account);
+});
+
+ipcMain.handle('run-strategy', () => {
+  return new Promise((resolve) => {
+    const ENGINE_SCRIPT = path.join(BASE_DIR, 'strategy', 'run_engine.py');
+    const pyArgs = [ENGINE_SCRIPT, '--json'];
+    const proc = spawn(PYTHON_EXE, pyArgs, { cwd: BASE_DIR });
+    let stdout = '', stderr = '';
+    proc.stdout.on('data', (d) => { stdout += d.toString(); });
+    proc.stderr.on('data', (d) => { stderr += d.toString(); });
+    proc.on('close', (code) => {
+      try {
+        const result = JSON.parse(stdout);
+        resolve({ success: true, data: result });
+      } catch (e) {
+        resolve({ success: false, error: stderr || stdout || '解析失败', code });
+      }
+    });
+    proc.on('error', (e) => {
+      resolve({ success: false, error: e.message });
+    });
+  });
 });
 
 ipcMain.handle('get-update-status', () => {
