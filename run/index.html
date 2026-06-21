@@ -2056,15 +2056,18 @@
     function updateAccountDisplay() {
         const totalCash = parseFloat(document.getElementById('totalCashInput').value) || 100000;
         let positionValue = 0;
+        let positionCost = 0;
         const allData = [...minuteData, ...dailyData];
         watchlist.forEach(item => {
             const itemNum = (item.code || '').replace(/[^0-9]/g, '');
             const stock = allData.find(s => ((s.code || '') + '').replace(/[^0-9]/g, '') === itemNum);
+            const qty = item.buyQty || 0;
             if (stock && stock.close) {
-                positionValue += (item.buyQty || 0) * stock.close;
+                positionValue += qty * stock.close;
             }
+            positionCost += (item.buyPrice || 0) * qty;
         });
-        const availableCash = totalCash - positionValue;
+        const availableCash = totalCash - positionCost;
         document.getElementById('positionValueDisplay').textContent = '持仓市值: ' + positionValue.toLocaleString();
         document.getElementById('availableCashDisplay').textContent = '可用资金: ' + Math.max(0, availableCash).toLocaleString();
     }
