@@ -56,6 +56,10 @@ class Portfolio:
         return sum(h.market_value for h in self.holdings)
 
     @property
+    def position_cost(self) -> float:
+        return sum(h.cost for h in self.holdings)
+
+    @property
     def total_value(self) -> float:
         return self.total_cash + self.position_value
 
@@ -313,6 +317,7 @@ class PortfolioManager:
             "portfolio": {
                 "total_cash": round(portfolio.total_cash, 2),
                 "position_value": round(portfolio.position_value, 2),
+                "position_cost": round(portfolio.position_cost, 2),
                 "total_value": round(portfolio.total_value, 2),
                 "cash_ratio": round(portfolio.cash_ratio * 100, 1),
                 "holding_count": portfolio.holding_count,

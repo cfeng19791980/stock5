@@ -1786,11 +1786,12 @@
         const summary = data.summary || {};
         let html = '';
         // 组合概览
+        var cash = pf.total_cash - (pf.position_cost || 0);
         html += '<div class="strategy-stats">';
-        html += `<div class="strategy-stat"><div class="strategy-stat-value" style="color:var(--primary);">${(pf.total_cash/10000).toFixed(1)}万</div><div class="strategy-stat-label">总资金</div></div>`;
-        html += `<div class="strategy-stat"><div class="strategy-stat-value" style="color:var(--success);">${(pf.position_value/10000).toFixed(1)}万</div><div class="strategy-stat-label">持仓市值</div></div>`;
-        html += `<div class="strategy-stat"><div class="strategy-stat-value" style="color:var(--warning);">${((pf.total_value||0)/10000).toFixed(1)}万</div><div class="strategy-stat-label">总资产</div></div>`;
-        html += `<div class="strategy-stat"><div class="strategy-stat-value">${pf.holding_count||0}</div><div class="strategy-stat-label">持仓数</div></div>`;
+        html += '<div class="strategy-stat"><div class="strategy-stat-value" style="color:var(--primary);">'+(pf.total_cash/10000).toFixed(1)+'万</div><div class="strategy-stat-label">总资金</div></div>';
+        html += '<div class="strategy-stat"><div class="strategy-stat-value" style="color:var(--success);">'+(pf.position_value/10000).toFixed(1)+'万</div><div class="strategy-stat-label">持仓市值</div></div>';
+        html += '<div class="strategy-stat"><div class="strategy-stat-value" style="color:var(--warning);">'+(cash/10000).toFixed(1)+'万</div><div class="strategy-stat-label">现金</div></div>';
+        html += '<div class="strategy-stat"><div class="strategy-stat-value">'+(pf.holding_count||0)+'</div><div class="strategy-stat-label">持仓数</div></div>';
         html += '</div>';
         // 持仓分析
         if (holdings.length > 0) {

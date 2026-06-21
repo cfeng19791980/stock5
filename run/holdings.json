@@ -1,0 +1,30 @@
+[
+  {
+    "code": "688556.SH",
+    "name": "688556",
+    "buyPrice": 10,
+    "buyQty": 1000,
+    "entryDate": "2026-06-13"
+  },
+  {
+    "code": "688028.SH",
+    "name": "688028",
+    "buyPrice": 100,
+    "buyQty": 1000,
+    "entryDate": "2026-06-13"
+  },
+  {
+    "code": "688676.SH",
+    "name": "688676",
+    "buyPrice": 60,
+    "buyQty": 1000,
+    "entryDate": "2026-06-13"
+  },
+  {
+    "code": "605196.SH",
+    "name": "605196",
+    "buyPrice": 32.8,
+    "buyQty": 1000,
+    "entryDate": "2026-06-18"
+  }
+]
