@@ -1,30 +1,37 @@
 [
   {
-    "code": "688556.SH",
-    "name": "688556",
+    "code": "688698.SH",
+    "name": "688698",
+    "buyPrice": 55,
+    "buyQty": 1000,
+    "entryDate": "2026-06-23"
+  },
+  {
+    "code": "688668.SH",
+    "name": "688668",
+    "buyPrice": 73,
+    "buyQty": 500,
+    "entryDate": "2026-06-23"
+  },
+  {
+    "code": "600118.SH",
+    "name": "600118",
+    "buyPrice": 70,
+    "buyQty": 500,
+    "entryDate": "2026-06-23"
+  },
+  {
+    "code": "688388.SH",
+    "name": "688388",
+    "buyPrice": 40,
+    "buyQty": 300,
+    "entryDate": "2026-06-23"
+  },
+  {
+    "code": "688416.SH",
+    "name": "688416",
     "buyPrice": 10,
-    "buyQty": 1000,
-    "entryDate": "2026-06-13"
-  },
-  {
-    "code": "688028.SH",
-    "name": "688028",
-    "buyPrice": 100,
-    "buyQty": 1000,
-    "entryDate": "2026-06-13"
-  },
-  {
-    "code": "688676.SH",
-    "name": "688676",
-    "buyPrice": 60,
-    "buyQty": 1000,
-    "entryDate": "2026-06-13"
-  },
-  {
-    "code": "605196.SH",
-    "name": "605196",
-    "buyPrice": 32.8,
-    "buyQty": 1000,
-    "entryDate": "2026-06-18"
+    "buyQty": 100,
+    "entryDate": "2026-06-23"
   }
 ]

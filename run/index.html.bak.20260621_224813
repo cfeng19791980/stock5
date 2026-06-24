@@ -45,7 +45,6 @@
             /* 侧边栏 */
             --sidebar-bg: #0c1222;
             --sidebar-hover: rgba(59,130,246,0.1);
-            --sidebar-width: 260px;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -67,17 +66,16 @@
 
         /* ===== Sidebar ===== */
         .sidebar {
-            width: var(--sidebar-width);
-            min-width: 200px;
-            max-width: 420px;
+            width: 220px;
             background: var(--sidebar-bg);
             min-height: 100vh;
+            position: fixed;
+            left: 0; top: 0;
+            z-index: 100;
             display: flex;
             flex-direction: column;
-            flex-shrink: 0;
             border-right: 1px solid var(--border);
-            transition: none;
-            order: -1;
+            transition: transform 0.3s ease;
         }
 
         .sidebar-brand {
@@ -154,26 +152,10 @@
             box-shadow: 0 0 6px var(--success);
         }
 
-        /* ===== Sidebar Resizer ===== */
-        .sidebar-resizer {
-            width: 5px;
-            cursor: col-resize;
-            background: transparent;
-            flex-shrink: 0;
-            position: relative;
-            z-index: 10;
-            transition: background 0.15s;
-            order: 0;
-        }
-        .sidebar-resizer:hover,
-        .sidebar-resizer.active {
-            background: var(--primary);
-        }
-
         /* ===== Main ===== */
         .main-content {
+            margin-left: 220px;
             flex: 1;
-            min-width: 0;
             min-height: 100vh;
         }
 
@@ -232,84 +214,86 @@
         }
 
         .stat-card {
-                    background: var(--bg-card);
-                    border-radius: var(--radius);
-                    padding: 10px;
-                    border: 1px solid var(--glass-border);
-                    transition: all 0.3s ease;
-                    position: relative;
-                    overflow: hidden;
-                    height: 70px;
-                }
-                .stat-card::before {
-                    content: '';
-                    position: absolute;
-                    top: 0; left: 0; right: 0;
-                    height: 2px;
-                    background: linear-gradient(90deg, transparent, var(--primary), transparent);
-                    opacity: 0;
-                    transition: opacity 0.3s;
-                }
-                .stat-card:hover {
-                    border-color: rgba(59,130,246,0.3);
-                    transform: translateY(-2px);
-                    box-shadow: var(--glow-md);
-                }
-                .stat-card:hover::before { opacity: 1; }
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 20px;
+            border: 1px solid var(--glass-border);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .stat-card:hover {
+            border-color: rgba(59,130,246,0.3);
+            transform: translateY(-2px);
+            box-shadow: var(--glow-md);
+        }
+        .stat-card:hover::before { opacity: 1; }
 
-                .stat-card-inner {
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    height: 100%;
-                }
+        .stat-card-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
 
-                .stat-info { flex: 1; }
-                .stat-info .stat-label {
-                    font-size: 10px;
-                    color: var(--text-muted);
-                    font-weight: 600;
-                    margin-bottom: 2px;
-                }
-                .stat-info .stat-value {
-                    font-size: 20px;
-                    font-weight: 800;
-                    color: var(--text-primary);
-                    line-height: 1;
-                }
-                .stat-info .stat-sub {
-                    font-size: 9px;
-                    color: var(--text-muted);
-                    margin-top: 2px;
-                }
+        .stat-info { flex: 1; }
+        .stat-info .stat-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .stat-info .stat-value {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--text-primary);
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+        }
+        .stat-info .stat-sub {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
 
-                /* 环形进度条 */
-                .ring-chart {
-                    width: 40px; height: 40px;
-                    position: relative;
-                    flex-shrink: 0;
-                }
-                .ring-chart svg { width: 40px; height: 40px; transform: rotate(-90deg); }
-                .ring-chart .ring-bg {
-                    fill: none;
-                    stroke: rgba(255,255,255,0.06);
-                    stroke-width: 4;
-                }
-                .ring-chart .ring-fill {
-                    fill: none;
-                    stroke-width: 4;
-                    stroke-linecap: round;
-                }
-                .ring-chart .ring-label {
-                    position: absolute;
-                    top: 50%; left: 50%;
-                    transform: translate(-50%, -50%);
-                    font-size: 11px;
-                    font-weight: 700;
-                    color: var(--text-primary);
-                }
+        /* 环形进度条 */
+        .ring-chart {
+            width: 72px; height: 72px;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .ring-chart svg { width: 72px; height: 72px; transform: rotate(-90deg); }
+        .ring-chart .ring-bg {
+            fill: none;
+            stroke: rgba(255,255,255,0.06);
+            stroke-width: 5;
+        }
+        .ring-chart .ring-fill {
+            fill: none;
+            stroke-width: 5;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1);
+        }
+        .ring-chart .ring-label {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%,-50%);
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-secondary);
+        }
 
-                .btn {
+        .btn {
             display: inline-flex; align-items: center; gap: 7px;
             padding: 9px 18px;
             border: none; border-radius: var(--radius-sm);
@@ -361,75 +345,14 @@
         }
 
         .chart-card {
-                    background: var(--bg-card);
-                    border-radius: var(--radius);
-                    border: 1px solid var(--glass-border);
-                    padding: 16px;
-                    transition: all 0.3s;
-                    display: flex;
-                    flex-direction: column;
-                    position: relative;
-                    overflow: hidden;
-                }
-                .chart-card::before {
-                    content: '';
-                    position: absolute;
-                    top: 0; left: 0; right: 0;
-                    height: 1px;
-                    background: linear-gradient(90deg, transparent, rgba(59,130,246,0.5), transparent);
-                    opacity: 0.6;
-                }
-                .chart-card:hover { 
-                    border-color: rgba(59,130,246,0.3); 
-                    box-shadow: 0 4px 24px rgba(59,130,246,0.15);
-                    transform: translateY(-2px);
-                }
-                .chart-card h3 {
-                    font-size: 14px;
-                    font-weight: 700;
-                    color: var(--text-primary);
-                    margin-bottom: 12px;
-                    display: flex;
-                    align-items: center;
-                    gap: 10px;
-                    padding-bottom: 10px;
-                    border-bottom: 1px solid var(--border);
-                }
-                .chart-card h3 i { 
-                    color: var(--primary);
-                    font-size: 16px;
-                }
-                .chart-card .card-header {
-                    display: flex;
-                    align-items: center;
-                    justify-content: space-between;
-                    margin-bottom: 12px;
-                    padding-bottom: 10px;
-                    border-bottom: 1px solid var(--border);
-                }
-                .chart-card .card-header h3 {
-                    margin: 0;
-                    padding: 0;
-                    border: none;
-                }
-                .chart-container { 
-                    width: 100%; 
-                    height: 280px; 
-                    border-radius: var(--radius-sm);
-                    background: rgba(0,0,0,0.15);
-                    padding: 8px;
-                }
-
-        /* ===== 交易策略 ===== */
-        .strategy-card {
             background: var(--bg-card);
             border-radius: var(--radius);
             border: 1px solid var(--glass-border);
             padding: 18px;
             transition: all 0.3s;
         }
-        .strategy-card:hover { border-color: rgba(59,130,246,0.2); }
-        .strategy-card h3 {
+        .chart-card:hover { border-color: rgba(59,130,246,0.2); }
+        .chart-card h3 {
             font-size: 13px;
             font-weight: 700;
             color: var(--text-secondary);
@@ -438,10 +361,13 @@
             align-items: center;
             gap: 8px;
         }
-        .strategy-card h3 i { color: var(--primary); }
+        .chart-card h3 i { color: var(--primary); }
+        .chart-container { width: 100%; height: 240px; }
+
+        /* ===== 交易策略 ===== */
         .strategy-container {
             width: 100%;
-            height: 280px;
+            max-height: 360px;
             overflow-y: auto;
             background: rgba(0,0,0,0.2);
             border-radius: var(--radius-sm);
@@ -523,7 +449,7 @@
             flex: 1;
         }
         .strategy-stat-value {
-            font-size: 15px;
+            font-size: 20px;
             font-weight: 800;
         }
         .strategy-stat-label {
@@ -703,18 +629,8 @@
             .stats-grid { grid-template-columns: repeat(2, 1fr); }
         }
         @media (max-width: 768px) {
-            .sidebar {
-                position: fixed;
-                left: 0; top: 0;
-                z-index: 200;
-                width: 260px;
-                min-width: 260px;
-                max-width: 260px;
-                transform: translateX(-100%);
-                transition: transform 0.3s ease;
-            }
+            .sidebar { transform: translateX(-100%); }
             .sidebar.open { transform: translateX(0); }
-            .sidebar-resizer { display: none; }
             .main-content { margin-left: 0; }
             .topbar { padding: 0 16px; }
             .page-content { padding: 14px; }
@@ -1009,8 +925,6 @@
     </div>
 </aside>
 
-<div class="sidebar-resizer" id="sidebarResizer"></div>
-
 <!-- ===== Main ===== -->
 <div class="main-content">
 
@@ -1148,7 +1062,7 @@
                 </div>
                 <div class="chart-container" id="chartKline"></div>
             </div>
-            <div class="strategy-card">
+            <div class="chart-card">
                 <h3><i class="fas fa-chess"></i> 交易策略</h3>
                 <div style="display:flex;gap:8px;margin-bottom:10px;">
                     <button class="btn btn-primary" style="padding:6px 14px;font-size:11px;font-weight:600;" onclick="runStrategy()">
@@ -1289,56 +1203,6 @@
         document.getElementById('sidebar').classList.toggle('open');
         document.getElementById('sidebarOverlay').classList.toggle('show');
     }
-
-    // ===== Sidebar Resizer (拖拽调整宽度) =====
-    (function initSidebarResizer() {
-        const resizer = document.getElementById('sidebarResizer');
-        const sidebar = document.getElementById('sidebar');
-        if (!resizer || !sidebar) return;
-
-        // 启动时恢复已保存的宽度
-        const savedWidth = localStorage.getItem('stock5_sidebar_width');
-        if (savedWidth) {
-            document.documentElement.style.setProperty('--sidebar-width', savedWidth + 'px');
-        }
-
-        let isResizing = false;
-        let startX = 0;
-        let startWidth = 0;
-
-        resizer.addEventListener('mousedown', (e) => {
-            isResizing = true;
-            startX = e.clientX;
-            startWidth = sidebar.offsetWidth;
-            resizer.classList.add('active');
-            document.body.style.cursor = 'col-resize';
-            document.body.style.userSelect = 'none';
-            e.preventDefault();
-        });
-
-        document.addEventListener('mousemove', (e) => {
-            if (!isResizing) return;
-            const delta = e.clientX - startX;
-            let newWidth = startWidth + delta;
-            // 限制范围：200px ~ 420px
-            newWidth = Math.max(200, Math.min(420, newWidth));
-            document.documentElement.style.setProperty('--sidebar-width', newWidth + 'px');
-        });
-
-        document.addEventListener('mouseup', () => {
-            if (!isResizing) return;
-            isResizing = false;
-            resizer.classList.remove('active');
-            document.body.style.cursor = '';
-            document.body.style.userSelect = '';
-            // 持久化宽度到 localStorage
-            const finalWidth = sidebar.offsetWidth;
-            localStorage.setItem('stock5_sidebar_width', finalWidth);
-            // 调整图表大小
-            if (typeof klineChart !== 'undefined' && klineChart) klineChart.resize();
-            if (typeof indexChart !== 'undefined' && indexChart) indexChart.resize();
-        });
-    })();
 
     function startAutoRefresh() {
         // 定时预测（每1小时，不等待结果）
@@ -2291,42 +2155,6 @@
         updateAccountDisplay();
     }
 
-    function editWatchlistQty(code, delta, priceKey) {
-        const item = watchlist.find(s => s.code === code);
-        if (!item) return;
-        const oldQty = item.buyQty || 0;
-        const oldPrice = item.buyPrice || 0;
-        const newQty = oldQty + delta;
-        if (newQty <= 0) {
-            // 数量归零 → 删除
-            removeFromWatchlist(code);
-            return;
-        }
-        if (delta > 0) {
-            // 买入：加权平均计算新成本价
-            const priceInput = document.getElementById('wlPrice_' + priceKey);
-            const customPrice = priceInput ? parseFloat(priceInput.value) : NaN;
-            const buyPrice = (!isNaN(customPrice) && customPrice > 0) ? customPrice : oldPrice;
-            item._lastPrice = priceInput ? priceInput.value : String(buyPrice);
-            const totalCost = oldPrice * oldQty + buyPrice * delta;
-            item.buyPrice = totalCost / newQty;
-        } else {
-            // 卖出：加权平均重算剩余成本价
-            const priceInput = document.getElementById('wlPrice_' + priceKey);
-            const customPrice = priceInput ? parseFloat(priceInput.value) : NaN;
-            const sellPrice = (!isNaN(customPrice) && customPrice > 0) ? customPrice : oldPrice;
-            if (priceInput && priceInput.value) item._lastPrice = priceInput.value;
-            const remainingCost = oldPrice * oldQty - sellPrice * Math.abs(delta);
-            item.buyPrice = remainingCost / newQty;
-        }
-        // 卖出：只调整数量，成本价不变
-        item.buyQty = newQty;
-        localStorage.setItem('stock5_watchlist', JSON.stringify(watchlist));
-        syncHoldingsToFile();
-        renderWatchlist();
-        updateAccountDisplay();
-    }
-
     function renderWatchlist() {
         const container = document.getElementById('watchlistItems');
         const countEl = document.getElementById('watchlistCount');
@@ -2376,24 +2204,20 @@
             
             return `
                 <div class="watchlist-item" onclick="openStockModal('${item.code}', '${name}', ${score !== null ? score : 'null'}, ${close !== null ? close.toFixed(2) : 'null'}, ${pct_chg != null ? pct_chg.toFixed(2) : 'null'})">
-                    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;">
-                        <div class="stock-name" style="font-size:12px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</div>
-                        ${profitText ? `<div style="font-size:10px;font-weight:500;color:${profitColor};">${profitText}</div>` : ''}
-                        <div style="font-size:10px;color:var(--text-muted);">${item.code}</div>
-                        <div style="font-size:10px;color:var(--text-muted);">${buyPrice>0?'成本 '+buyPrice.toFixed(2):''} ${buyQty>0?'×'+buyQty+'股':''}</div>
+                    <div style="flex:1;min-width:0;">
+                        <div class="stock-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                            ${name}
+                            ${profitText ? `<span style="font-size:10px;color:${profitColor};margin-left:4px;">${profitText}</span>` : ''}
+                        </div>
+                        <div class="stock-code" style="font-size:10px;">${item.code} ${buyPrice>0?'成本:'+buyPrice.toFixed(2):''}</div>
                     </div>
                     <div style="text-align:right;flex-shrink:0;margin-left:8px;">
                         <div style="font-size:14px;font-weight:700;color:var(--text-primary);">${close?close.toFixed(2):'--'}</div>
                         <div style="font-size:11px;color:${changeColor};">${changeText}</div>
                         <div style="font-size:10px;color:${scoreColor};font-weight:600;">评分 ${score!==null?score:'--'}</div>
-                        <div style="display:flex;gap:3px;justify-content:flex-end;margin-top:2px;align-items:center;">
-                            <input type="text" class="watchlist-price-input" id="wlPrice_${item.code.replace(/[^a-zA-Z0-9]/g,'')}" placeholder="价格" style="width:46px;padding:2px 4px;font-size:10px;background:var(--bg-dark);border:1px solid var(--border);border-radius:3px;color:var(--text-primary);text-align:center;" value="${item._lastPrice || (close ? close.toFixed(2) : '')}" onclick="event.stopPropagation();" onkeydown="if(event.key==='Enter'){event.stopPropagation();editWatchlistQty('${item.code}', 100, '${item.code.replace(/[^a-zA-Z0-9]/g,'')}')}">
-                            <button class="btn" style="padding:2px 6px;font-size:10px;background:var(--success);color:#fff;border:none;border-radius:3px;" onclick="event.stopPropagation();editWatchlistQty('${item.code}', 100, '${item.code.replace(/[^a-zA-Z0-9]/g,'')}')" title="加仓100股">+买入</button>
-                            <button class="btn" style="padding:2px 6px;font-size:10px;background:var(--danger);color:#fff;border:none;border-radius:3px;" onclick="event.stopPropagation();editWatchlistQty('${item.code}', -100, '${item.code.replace(/[^a-zA-Z0-9]/g,'')}')" title="减仓100股">-卖出</button>
-                            <button class="delete-btn" style="padding:2px 4px;" onclick="event.stopPropagation();removeFromWatchlist('${item.code}')">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
+                        <button class="delete-btn" onclick="event.stopPropagation();removeFromWatchlist('${item.code}')">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
                 </div>
             `;
